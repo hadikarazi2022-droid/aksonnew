@@ -10,6 +10,17 @@ load_dotenv()
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# Fallback: try to read from bundled API key file
+if not OPENAI_API_KEY:
+    try:
+        # Look for api_key.txt in the same directory as this config file
+        key_file = os.path.join(os.path.dirname(__file__), 'api_key.txt')
+        if os.path.exists(key_file):
+            with open(key_file, 'r') as f:
+                OPENAI_API_KEY = f.read().strip()
+    except:
+        pass
 FIREBASE_API_KEY = os.getenv("FIREBASE_API_KEY", "AIzaSyAwg89xejL4Oh4hGjpSfluOxZyqCqT5iaA")
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "farooqi-ai")
 
