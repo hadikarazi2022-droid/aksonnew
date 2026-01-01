@@ -1,7 +1,7 @@
 {
-  "version": "1.0.4",
-  "notes": "Production release with embedded API key, toast notifications, and About section",
-  "url": "https://github.com/Sheikh-Hamoodi/akson/releases/download/v1.0.4/Akson-1.0.4.dmg",
+  "version": "1.0.5",
+  "notes": "Test version for update notifications - includes About section and improved UI",
+  "url": "https://github.com/Sheikh-Hamoodi/akson/releases/download/v1.0.5/Akson-1.0.5.dmg",
   "sha256": "",
   "min_version": "1.0.0"
 }
