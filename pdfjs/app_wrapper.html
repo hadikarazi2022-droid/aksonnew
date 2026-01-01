@@ -1139,6 +1139,7 @@
                     <button class="settings-tab active" data-tab="general">General</button>
                     <button class="settings-tab" data-tab="appearance">Appearance</button>
                     <button class="settings-tab" data-tab="pdf-viewer">PDF Viewer</button>
+                    <button class="settings-tab" data-tab="about">About</button>
                 </div>
                 
                 <div class="settings-content">
@@ -1233,6 +1234,32 @@
                             <label>PDF Zoom</label>
                             <input type="range" id="pdfZoomInput" min="50" max="200" value="100">
                             <span id="pdfZoomValue">100%</span>
+                        </div>
+                    </div>
+
+                    <!-- About Tab -->
+                    <div class="settings-panel" data-panel="about">
+                        <div class="setting-item">
+                            <div style="text-align: center; padding: var(--spacing-lg);">
+                                <img src="../../../icons/akson.png" alt="Akson" style="width: 48px; height: 48px; margin-bottom: var(--spacing-md); border-radius: 12px;">
+                                <h3 style="margin: 0 0 var(--spacing-sm) 0; color: var(--text-primary);">Akson</h3>
+                                <p style="margin: 0 0 var(--spacing-md) 0; color: var(--text-secondary); font-size: var(--font-size-sm);">AI-Powered Study Companion</p>
+                                <div style="background: var(--bg-tertiary); padding: var(--spacing-sm); border-radius: var(--radius-sm); margin-bottom: var(--spacing-md);">
+                                    <strong>Version:</strong> <span id="appVersion">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label>Check for Updates</label>
+                            <button id="checkUpdatesBtn" style="width: 100%; padding: var(--spacing-sm); background: var(--accent-purple); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer;">Check Now</button>
+                            <div id="updateStatus" style="margin-top: var(--spacing-sm); font-size: var(--font-size-sm); color: var(--text-secondary);"></div>
+                        </div>
+                        <div class="setting-item">
+                            <label>System Info</label>
+                            <div style="background: var(--bg-tertiary); padding: var(--spacing-sm); border-radius: var(--radius-sm); font-size: var(--font-size-sm);">
+                                <div><strong>Platform:</strong> <span id="systemPlatform">macOS</span></div>
+                                <div><strong>Architecture:</strong> <span id="systemArch">arm64</span></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1463,6 +1490,10 @@
             document.getElementById('pdfPageThemeInput').onchange = handlePdfPageThemeChange;
             document.getElementById('fontSizeInput').oninput = handleFontSizeChange;
             document.getElementById('pdfZoomInput').oninput = handlePdfZoomChange;
+
+            // About tab
+            document.getElementById('checkUpdatesBtn').onclick = handleCheckUpdates;
+            updateAboutInfo();
             
             // Annotation tools
             document.getElementById('selectBtn').onclick = () => setTool('select');
@@ -2329,7 +2360,94 @@
             document.getElementById('pdfZoomValue').textContent = zoom + '%';
             // PDF zoom would be handled by PDF.js viewer
         }
-        
+
+        // About tab functions
+        function updateAboutInfo() {
+            // Set version info
+            const versionElement = document.getElementById('appVersion');
+            if (versionElement) {
+                versionElement.textContent = '1.0.4'; // Will be updated by Python backend
+            }
+
+            // Set system info
+            const platformElement = document.getElementById('systemPlatform');
+            const archElement = document.getElementById('systemArch');
+
+            if (platformElement) {
+                platformElement.textContent = navigator.platform.includes('Mac') ? 'macOS' :
+                                            navigator.platform.includes('Win') ? 'Windows' : 'Linux';
+            }
+
+            if (archElement) {
+                archElement.textContent = navigator.userAgent.includes('arm64') ||
+                                        navigator.userAgent.includes('ARM') ? 'ARM64' : 'x64';
+            }
+        }
+
+        function handleCheckUpdates() {
+            const btn = document.getElementById('checkUpdatesBtn');
+            const status = document.getElementById('updateStatus');
+
+            if (!btn || !status) return;
+
+            // Disable button and show loading
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+            status.textContent = 'Checking for updates...';
+            status.style.color = 'var(--text-secondary)';
+
+            // Call Python backend to check for updates
+            if (window.pywebview && window.pywebview.api && window.pywebview.api.check_for_updates) {
+                window.pywebview.api.check_for_updates().then(result => {
+                    // Re-enable button
+                    btn.disabled = false;
+                    btn.textContent = 'Check Now';
+
+                    if (result && result.ok) {
+                        if (result.needsUpdate) {
+                            status.textContent = `Update available: v${result.latest}`;
+                            status.style.color = 'var(--accent-purple)';
+
+                            // Show download prompt
+                            setTimeout(() => {
+                                if (confirm(`Update available: v${result.latest}\n\n${result.notes}\n\nDownload now?`)) {
+                                    if (window.pywebview && window.pywebview.api && window.pywebview.api.download_update) {
+                                        status.textContent = 'Downloading update...';
+                                        window.pywebview.api.download_update(result.downloadUrl).then(downloadResult => {
+                                            if (downloadResult && downloadResult.ok) {
+                                                status.textContent = 'Update downloaded! Check your Downloads folder.';
+                                                status.style.color = '#28a745';
+                                            } else {
+                                                status.textContent = 'Download failed: ' + (downloadResult.error || 'Unknown error');
+                                                status.style.color = '#dc3545';
+                                            }
+                                        });
+                                    }
+                                }
+                            }, 500);
+                        } else {
+                            status.textContent = 'You have the latest version!';
+                            status.style.color = '#28a745';
+                        }
+                    } else {
+                        status.textContent = 'Failed to check updates: ' + (result.error || 'Network error');
+                        status.style.color = '#dc3545';
+                    }
+                }).catch(error => {
+                    btn.disabled = false;
+                    btn.textContent = 'Check Now';
+                    status.textContent = 'Error checking updates: ' + error.message;
+                    status.style.color = '#dc3545';
+                });
+            } else {
+                // Fallback for when not running in pywebview
+                btn.disabled = false;
+                btn.textContent = 'Check Now';
+                status.textContent = 'Update checking not available in this environment';
+                status.style.color = 'var(--text-secondary)';
+            }
+        }
+
         // Export functions for PDF.js integration
         window.onPageChange = onPageChange;
         window.onTextSelection = onTextSelection;
