@@ -1,0 +1,19 @@
+flask
+flask-sqlalchemy
+flask-cors
+stripe
+gunicorn
+python-dotenv
+python-pptx
+PyMuPDF
+# Dependencies for base.py (Akson widget)
+PyQt6
+pynput
+mss
+opencv-python
+numpy
+openai
+requests
+pytesseract
+Pillow
+genanki
