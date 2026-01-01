@@ -5,7 +5,7 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = [('web', 'web'), ('pdfjs', 'web_pdfjs'), ('icons', 'icons'), ('base.py', '.'), ('api_key.txt', 'akson/')]
 binaries = []
-hiddenimports = ['aiohttp', 'jinja2', 'pkg_resources.py2_warn', 'pynput', 'pynput.keyboard', 'PyQt6', 'PyQt6.QtWidgets', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWebEngineWidgets', 'PyQt6.QtPrintSupport', 'mss', 'cv2', 'pytesseract', 'PIL', 'PIL.Image', 'genanki', 'openai', 'numpy', 'requests', 'webview', 'fitz', 'sqlite3', 'webbrowser', 'subprocess', 'base64', 'queue', 'urllib.parse', 'pathlib']
+hiddenimports = ['aiohttp', 'jinja2', 'pkg_resources.py2_warn', 'pynput', 'pynput.keyboard', 'PyQt6', 'PyQt6.QtWidgets', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWebEngineWidgets', 'PyQt6.QtPrintSupport', 'mss', 'cv2', 'pytesseract', 'PIL', 'PIL.Image', 'genanki', 'openai', 'numpy', 'requests', 'webview', 'fitz', 'sqlite3', 'webbrowser', 'subprocess', 'base64', 'queue', 'urllib.parse', 'pathlib', 'pywebview']
 datas += collect_data_files('akson_cards')
 hiddenimports += collect_submodules('akson_cards')
 tmp_ret = collect_all('pdfjs')
