@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  packages: write
+  releases: write
+
 jobs:
   release:
     runs-on: macos-latest
