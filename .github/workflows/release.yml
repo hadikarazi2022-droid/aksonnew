@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Build app with PyInstaller
+      run: |
+        pyinstaller --clean --windowed --onedir Akson.spec
+
+    - name: Create DMG
+      run: |
+        # Install create-dmg if not available
+        brew install create-dmg
+
+        # Create DMG from app bundle
+        create-dmg \
+          --volname "Akson" \
+          --volicon "icons/akson.png" \
+          --window-pos 200 120 \
+          --window-size 800 400 \
+          --icon-size 100 \
+          --icon "Akson.app" 200 190 \
+          --app-drop-link 600 185 \
+          "Akson-${{ github.ref_name }}.dmg" \
+          "dist/Akson.app"
+
+    - name: Calculate SHA256
+      run: |
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+          SHA256=$(shasum -a 256 "Akson-${{ github.ref_name }}.dmg" | cut -d' ' -f1)
+        else
+          SHA256=$(sha256sum "Akson-${{ github.ref_name }}.dmg" | cut -d' ' -f1)
+        fi
+        echo "SHA256=$SHA256" >> $GITHUB_ENV
+        echo "Calculated SHA256: $SHA256"
+
+    - name: Update manifest.json
+      run: |
+        # Update the manifest with new version info
+        jq --arg version "${{ github.ref_name }}" \
+           --arg sha256 "$SHA256" \
+           --arg url "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Akson-${{ github.ref_name }}.dmg" \
+           '.version = ($version | sub("^v"; "")) | .url = $url | .sha256 = $sha256' \
+           manifest.json > manifest_temp.json && mv manifest_temp.json manifest.json
+
+        cat manifest.json
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          Akson-${{ github.ref_name }}.dmg
+          manifest.json
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
