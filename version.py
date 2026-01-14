@@ -2,7 +2,7 @@
 Version management for Akson
 """
 
-__version__ = "1.0.10"
+__version__ = "1.0.11"
 __build__ = "dev"
 
 # For PyInstaller compatibility
