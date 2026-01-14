@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akson - AI-Powered Study Companion</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Akson</h1>
+            <p>AI-Powered Study Companion</p>
+        </header>
+        
+        <nav>
+            <a href="/" class="nav-link active">Dashboard</a>
+            <a href="/decks" class="nav-link">My Decks</a>
+        </nav>
+        
+        <main>
+            <section class="hero">
+                <h2>Transform Your Learning Experience</h2>
+                <p>Intelligent flashcards powered by spaced repetition and AI to help you learn more efficiently.</p>
+                
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <h3 id="total-decks">0</h3>
+                        <p>Total Decks</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="total-cards">0</h3>
+                        <p>Total Cards</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="due-today">0</h3>
+                        <p>Due Today</p>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="quick-actions">
+                <h3>Quick Actions</h3>
+                <div class="action-buttons">
+                    <button id="create-deck-btn" class="btn-primary">Create New Deck</button>
+                    <button id="study-now-btn" class="btn-secondary">Study Now</button>
+                </div>
+            </section>
+            
+            <section class="recent-activity">
+                <h3>Your Decks</h3>
+                <div id="decks-list" class="decks-grid">
+                    <!-- Decks will be loaded here -->
+                    <div class="loading">Loading decks...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Modal for creating a new deck -->
+    <div id="create-deck-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Create New Deck</h2>
+            <form id="create-deck-form">
+                <div class="form-group">
+                    <label for="deck-name">Deck Name</label>
+                    <input type="text" id="deck-name" required placeholder="Enter deck name...">
+                </div>
+                <div class="form-group">
+                    <label for="deck-description">Description (optional)</label>
+                    <textarea id="deck-description" placeholder="Enter deck description..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Create Deck</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
