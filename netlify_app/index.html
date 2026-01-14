@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akson - AI-Powered Study Companion</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Akson</h1>
+            <p>AI-Powered Study Companion</p>
+        </header>
+        
+        <nav>
+            <button id="dashboard-btn" class="nav-btn active">Dashboard</button>
+            <button id="decks-btn" class="nav-btn">Decks</button>
+            <button id="study-btn" class="nav-btn">Study</button>
+        </nav>
+        
+        <main>
+            <!-- Dashboard View -->
+            <section id="dashboard-view" class="view active">
+                <h2>Dashboard</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3>Total Decks</h3>
+                        <p id="total-decks">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Cards Studied Today</h3>
+                        <p id="cards-studied">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Retention Rate</h3>
+                        <p id="retention-rate">0%</p>
+                    </div>
+                </div>
+                
+                <div class="recent-decks">
+                    <h3>Your Decks</h3>
+                    <div id="recent-decks-list"></div>
+                </div>
+            </section>
+            
+            <!-- Decks View -->
+            <section id="decks-view" class="view">
+                <h2>Your Decks</h2>
+                <div class="controls">
+                    <button id="add-deck-btn" class="btn-primary">Add New Deck</button>
+                </div>
+                
+                <div id="decks-container">
+                    <!-- Decks will be loaded here -->
+                </div>
+            </section>
+            
+            <!-- Study View -->
+            <section id="study-view" class="view">
+                <h2>Study Session</h2>
+                <div id="study-container">
+                    <div id="study-header">
+                        <h3 id="current-deck-name">Select a deck to start studying</h3>
+                        <div id="progress-container">
+                            <div id="progress-bar">
+                                <div id="progress-fill"></div>
+                            </div>
+                            <span id="progress-text">0/0</span>
+                        </div>
+                    </div>
+                    
+                    <div id="flashcard-container">
+                        <div id="question-container">
+                            <p id="question-text">Select a deck to begin studying</p>
+                        </div>
+                        
+                        <div id="answer-container" style="display:none;">
+                            <p id="answer-text"></p>
+                        </div>
+                        
+                        <div id="actions-container">
+                            <button id="show-answer-btn" class="btn-primary">Show Answer</button>
+                            
+                            <div id="rating-buttons" style="display:none;">
+                                <button data-rating="again" class="rating-btn btn-again">Again</button>
+                                <button data-rating="hard" class="rating-btn btn-hard">Hard</button>
+                                <button data-rating="good" class="rating-btn btn-good">Good</button>
+                                <button data-rating="easy" class="rating-btn btn-easy">Easy</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Modal for adding new deck -->
+    <div id="add-deck-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Add New Deck</h3>
+            <form id="add-deck-form">
+                <input type="text" id="deck-name" placeholder="Deck Name" required>
+                <textarea id="deck-description" placeholder="Description (optional)"></textarea>
+                <button type="submit" class="btn-primary">Create Deck</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal for adding new card -->
+    <div id="add-card-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Add New Card</h3>
+            <form id="add-card-form">
+                <input type="hidden" id="card-deck-id">
+                <input type="text" id="card-question" placeholder="Question" required>
+                <textarea id="card-answer" placeholder="Answer" required></textarea>
+                <button type="submit" class="btn-primary">Add Card</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

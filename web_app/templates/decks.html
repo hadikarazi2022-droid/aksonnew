@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Decks - Akson</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Akson</h1>
+            <p>AI-Powered Study Companion</p>
+        </header>
+        
+        <nav>
+            <a href="/" class="nav-link">Dashboard</a>
+            <a href="/decks" class="nav-link active">My Decks</a>
+        </nav>
+        
+        <main>
+            <section class="page-header">
+                <h2>My Decks</h2>
+                <button id="create-deck-btn" class="btn-primary">Create New Deck</button>
+            </section>
+            
+            <section class="decks-section">
+                <div id="decks-list" class="decks-grid">
+                    <!-- Decks will be loaded here -->
+                    <div class="loading">Loading decks...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Modal for creating a new deck -->
+    <div id="create-deck-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Create New Deck</h2>
+            <form id="create-deck-form">
+                <div class="form-group">
+                    <label for="deck-name">Deck Name</label>
+                    <input type="text" id="deck-name" required placeholder="Enter deck name...">
+                </div>
+                <div class="form-group">
+                    <label for="deck-description">Description (optional)</label>
+                    <textarea id="deck-description" placeholder="Enter deck description..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Create Deck</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal for adding a new card -->
+    <div id="add-card-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Card</h2>
+            <form id="add-card-form">
+                <input type="hidden" id="card-deck-id">
+                <div class="form-group">
+                    <label for="card-front">Front (Question)</label>
+                    <textarea id="card-front" required placeholder="Enter the question or front of the card..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="card-back">Back (Answer)</label>
+                    <textarea id="card-back" required placeholder="Enter the answer or back of the card..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Add Card</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/decks.js') }}"></script>
+</body>
+</html>

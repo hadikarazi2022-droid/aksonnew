@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Deck - Akson</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Akson</h1>
+            <p>AI-Powered Study Companion</p>
+        </header>
+        
+        <nav>
+            <a href="/" class="nav-link">Dashboard</a>
+            <a href="/decks" class="nav-link">My Decks</a>
+        </nav>
+        
+        <main>
+            <section class="study-header">
+                <h2>Study Deck</h2>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <span id="progress-text">0/0</span>
+                </div>
+            </section>
+            
+            <section class="study-card-container">
+                <div class="study-card" id="study-card">
+                    <div class="card-content" id="card-content">
+                        <div class="loading">Loading card...</div>
+                    </div>
+                    <button id="flip-card-btn" class="btn-secondary">Show Answer</button>
+                </div>
+                
+                <div class="rating-buttons" id="rating-buttons" style="display: none;">
+                    <button class="btn-rating btn-again" data-rating="1">Again (1)</button>
+                    <button class="btn-rating btn-hard" data-rating="2">Hard (2)</button>
+                    <button class="btn-rating btn-good" data-rating="3">Good (3)</button>
+                    <button class="btn-rating btn-easy" data-rating="4">Easy (4)</button>
+                </div>
+                
+                <div class="study-controls">
+                    <button id="end-session-btn" class="btn-secondary">End Session</button>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <script>
+        // Pass the deck ID to the JavaScript
+        window.DECK_ID = "{{ deck_id }}";
+    </script>
+    <script src="{{ url_for('static', filename='js/study.js') }}"></script>
+</body>
+</html>
