@@ -16,9 +16,7 @@
 .textLayer{
   position:absolute;
   text-align:initial;
-  right:0;
-  bottom:0;
-  left:1px;
+  inset:0;
   overflow:hidden;
   opacity:0.25;
   line-height:1;
@@ -2351,7 +2349,7 @@
   --treeitem-expanded-icon:url(images/treeitem-expanded.svg);
   --treeitem-collapsed-icon:url(images/treeitem-collapsed.svg);
   --toolbarButton-editorFreeText-icon:url(images/toolbarButton-editorFreeText.svg);
-  --toolbarButton-editorHighlight-icon:url(images/toolbarButton-editorHighlight.svg);
+  --toolbarButton-editorHighlight-icon:url(images/highlighter.svg);
   --toolbarButton-editorInk-icon:url(images/toolbarButton-editorInk.svg);
   --toolbarButton-editorStamp-icon:url(images/toolbarButton-editorStamp.svg);
   --toolbarButton-menuArrow-icon:url(images/toolbarButton-menuArrow.svg);
@@ -3050,10 +3048,6 @@ body{
   opacity:0.5;
 }
 
-#editorHighlight{
-  opacity:1;
-}
-
 .splitToolbarButton > .toolbarButton:is(:hover, :focus-visible),
 .dropdownToolbarButton:hover{
   background-color:var(--button-hover-color);
@@ -3470,6 +3464,7 @@ a:is(.toolbarButton, .secondaryToolbarButton)[href="#"]{
 
 #pageNumber{
   -moz-appearance:textfield;
+  appearance:textfield;
   text-align:end;
   width:40px;
   background-size:0 0;

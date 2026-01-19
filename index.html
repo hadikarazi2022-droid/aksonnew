@@ -1,120 +1,616 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
-  <title>Akson Web Viewer</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg: #0b1220;
-      --panel: #0f172a;
-      --muted: #94a3b8;
-      --accent: #2563eb;
-      --border: #1f2937;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:#e2e8f0;min-height:100vh;display:flex;flex-direction:column}
-    header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(15,23,42,0.8);backdrop-filter:blur(10px);position:sticky;top:0;z-index:10}
-    header h1{margin:0;font-size:20px;font-weight:700}
-    header .status{color:var(--muted);font-size:14px}
-    main{flex:1;display:grid;grid-template-columns:1fr 320px;gap:0;border-top:1px solid var(--border);min-height:0}
-    .viewer{background:#000;display:flex;min-height:0}
-    .viewer iframe{border:0;flex:1;min-height:0}
-    .sidebar{background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
-    .sidebar header{position:static;border:0;padding:14px 16px}
-    .list{padding:8px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:8px}
-    .item{padding:12px;border:1px solid var(--border);border-radius:10px;background:#0c1324;cursor:pointer;transition:background .15s,border-color .15s}
-    .item:hover{border-color:#334155;background:#121b32}
-    .item.active{border-color:var(--accent);background:#13203d}
-    .item-title{margin:0 0 4px;font-weight:600;font-size:15px}
-    .item-meta{margin:0;color:var(--muted);font-size:12px}
-    .empty{padding:16px;color:var(--muted);text-align:center}
-    .error{color:#f87171;padding:12px;text-align:center}
-  </style>
+  <title>Akson — AI Study Companion</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="AI-powered study companion for PDF processing, flashcard generation, and document analysis.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
 </head>
+
 <body>
-  <header>
-    <h1>Akson Web Viewer</h1>
-    <div class="status" id="status">Loading library…</div>
-  </header>
-  <main>
-    <section class="viewer">
-      <iframe id="pdf-frame" title="PDF Viewer" src="/pdfjs/web/viewer.html?file=/pdfjs/web/compressed.tracemonkey-pldi-09.pdf"></iframe>
-    </section>
-    <aside class="sidebar">
-      <header>
-        <div class="status" id="count">0 notes · 0 cards</div>
-      </header>
-      <div class="list" id="list"></div>
+  <!-- Main App Container -->
+  <div class="app-container">
+
+    <!-- Left: PDF Thumbnails Sidebar -->
+    <aside class="thumbnails-sidebar" id="thumbnails-sidebar">
+      <div class="thumbnails-list" id="thumbnails-list">
+        <!-- Thumbnails populated dynamically -->
+        <div class="thumbnail-placeholder">
+          <span>No pages</span>
+        </div>
+      </div>
     </aside>
-  </main>
 
-  <template id="item-template">
-    <div class="item">
-      <p class="item-title" data-title></p>
-      <p class="item-meta" data-meta></p>
-      <p class="item-meta" data-tags></p>
+    <!-- Center: PDF Viewer -->
+    <main class="viewer-main">
+      <!-- Toolbar -->
+      <div class="viewer-toolbar">
+        <div class="toolbar-left">
+          <button class="toolbar-btn" id="toggle-thumbnails" title="Toggle Thumbnails">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
+          </button>
+          <div class="toolbar-divider"></div>
+          <button class="toolbar-btn" id="zoom-out" title="Zoom Out">−</button>
+          <span class="page-info" id="page-info">1 of 1</span>
+          <button class="toolbar-btn" id="zoom-in" title="Zoom In">+</button>
+          <select class="zoom-select" id="zoom-select">
+            <option value="auto">Automatic Zoom</option>
+            <option value="0.5">50%</option>
+            <option value="0.75">75%</option>
+            <option value="1">100%</option>
+            <option value="1.25">125%</option>
+            <option value="1.5">150%</option>
+            <option value="2">200%</option>
+          </select>
+        </div>
+        <div class="toolbar-center">
+          <label class="upload-btn">
+            <input type="file" id="file-input" accept=".pdf,.pptx,.ppt" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="17,8 12,3 7,8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Upload
+          </label>
+        </div>
+        <div class="toolbar-right">
+          <button class="toolbar-btn active" id="select-btn" title="Select/Cursor">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z" />
+              <path d="M13 13l6 6" />
+            </svg>
+          </button>
+          <div class="toolbar-divider"></div>
+          <button class="toolbar-btn" id="highlight-btn" title="Highlight">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+          </button>
+          <button class="toolbar-btn" id="draw-btn" title="Draw">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 19l7-7 3 3-7 7-3-3z" />
+              <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+              <path d="M2 2l7.586 7.586" />
+              <circle cx="11" cy="11" r="2" />
+            </svg>
+          </button>
+          <button class="toolbar-btn" id="text-btn" title="Add Text">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="4,7 4,4 20,4 20,7" />
+              <line x1="9" y1="20" x2="15" y2="20" />
+              <line x1="12" y1="4" x2="12" y2="20" />
+            </svg>
+          </button>
+          <div class="toolbar-divider"></div>
+          <button class="toolbar-btn" id="print-btn" title="Print">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6,9 6,2 18,2 18,9" />
+              <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
+              <rect x="6" y="14" width="12" height="8" />
+            </svg>
+          </button>
+          <button class="toolbar-btn" id="download-btn" title="Download">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="7,10 12,15 17,10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
+          <button class="toolbar-btn" id="toggle-sidebar" title="Toggle Sidebar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <line x1="15" y1="3" x2="15" y2="21" />
+            </svg>
+          </button>
+          <button class="toolbar-btn" id="settings-btn" title="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- PDF Content -->
+      <div class="viewer-content" id="viewer-content">
+        <div class="upload-zone" id="upload-zone">
+          <div class="upload-zone-inner">
+            <div class="upload-icon">📄</div>
+            <h3>Drop your PDF here</h3>
+            <p>or click to upload</p>
+          </div>
+        </div>
+        <iframe id="pdf-frame" class="pdf-viewer hidden" title="PDF Viewer"></iframe>
+      </div>
+    </main>
+
+    <!-- Right: AI Sidebar -->
+    <aside class="ai-sidebar" id="ai-sidebar">
+      <!-- Sidebar Header -->
+      <div class="sidebar-header">
+        <div class="sidebar-tabs">
+          <button class="sidebar-tab active" data-tab="akson">
+            <span class="tab-icon">📚</span> Akson
+          </button>
+          <button class="sidebar-tab" data-tab="library">
+            <span class="tab-icon">📖</span> Library
+          </button>
+        </div>
+        <div class="sidebar-actions">
+          <button class="sidebar-action-btn" id="open-folder-btn" title="Open Folder">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+            </svg>
+          </button>
+          <button class="sidebar-action-btn" id="sidebar-settings-btn" title="Settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Sidebar Content: Akson Tab -->
+      <div class="sidebar-content" id="sidebar-akson">
+        <!-- Summary Section -->
+        <div class="sidebar-section" id="summary-section">
+          <div class="section-header" data-section="summary">
+            <div class="section-title">
+              <span class="section-icon">▼</span>
+              <span>Summary</span>
+            </div>
+            <button class="ai-btn" id="generate-summary-btn">
+              <span class="ai-icon">✨</span> AI
+            </button>
+          </div>
+          <div class="section-content" id="summary-content">
+            <div class="section-output" id="summary-output">
+              <div class="output-placeholder">
+                Select text or click AI to generate a summary
+              </div>
+            </div>
+            <div class="section-input-row">
+              <input type="text" class="extra-input" id="summary-instruction" placeholder="Extra instruction...">
+              <button class="refresh-btn" id="refresh-summary" title="Regenerate">↻</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Term Explainer Section -->
+        <div class="sidebar-section" id="explainer-section">
+          <div class="section-header" data-section="explainer">
+            <div class="section-title">
+              <span class="section-icon">▼</span>
+              <span>Term Explainer</span>
+            </div>
+          </div>
+          <div class="section-content" id="explainer-content">
+            <div class="term-display" id="term-display">
+              <div class="loading-indicator hidden" id="explainer-loading">
+                <div class="loading-dot"></div>
+              </div>
+              <div class="output-placeholder">
+                Select a word or term in the PDF
+              </div>
+            </div>
+            <div class="section-actions">
+              <button class="action-btn" id="add-to-flashcard" title="Add to Flashcards">+</button>
+              <button class="action-btn" id="clear-explainer" title="Clear">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flashcards Section -->
+        <div class="sidebar-section" id="flashcards-section">
+          <div class="section-header" data-section="flashcards">
+            <div class="section-title">
+              <span class="section-icon">▼</span>
+              <span>Flashcards</span>
+              <span class="badge" id="flashcard-count">0</span>
+            </div>
+            <button class="ai-btn" id="generate-flashcards-btn">
+              <span class="ai-icon">✨</span> AI
+            </button>
+          </div>
+          <div class="section-content" id="flashcards-content">
+            <div class="flashcards-list" id="flashcards-list">
+              <!-- Cards populated here -->
+            </div>
+            <div class="flashcards-actions">
+              <button class="secondary-btn" id="study-btn" disabled>
+                <span>📖</span> Study
+              </button>
+              <button class="secondary-btn" id="export-btn" disabled>
+                <span>💾</span> Export
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ask AI Section -->
+        <div class="ask-ai-section">
+          <div class="section-label">Ask AI</div>
+          <div class="ask-ai-input-wrapper">
+            <input type="text" id="ask-ai-input" placeholder="Ask anything...">
+            <button class="send-btn" id="send-ask-ai">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22,2 15,22 11,13 2,9 22,2" />
+              </svg>
+            </button>
+          </div>
+          <div class="chat-output" id="chat-output">
+            <div class="chat-bubble system">
+              <span class="chat-icon">💬</span>
+              <span>Ask a question to get started.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar Content: Library Tab -->
+      <div class="sidebar-content hidden" id="sidebar-library">
+        <div class="library-list" id="library-list">
+          <div class="library-empty">
+            <span class="empty-icon">📚</span>
+            <p>No saved lectures yet</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Flashcard Study Modal -->
+  <div class="modal hidden" id="flashcard-modal">
+    <div class="modal-backdrop"></div>
+    <div class="flashcard-modal-content">
+      <div class="flashcard-modal-header">
+        <div class="modal-title">
+          <span id="deck-title">untitled</span> - Flashcards
+          <button class="star-btn" id="star-deck" title="Favorite">✱</button>
+        </div>
+        <button class="close-modal-btn" id="close-flashcard-modal">✕</button>
+      </div>
+
+      <div class="flashcard-study-area">
+        <div class="flashcard-container">
+          <button class="card-menu-btn" id="card-menu-btn">☰</button>
+          <button class="card-edit-btn" id="card-edit-btn">✎</button>
+
+          <button class="nav-arrow nav-prev" id="prev-card">‹</button>
+
+          <div class="study-card" id="study-card">
+            <div class="study-card-inner">
+              <div class="study-card-front">
+                <div class="card-text" id="card-front-text">No flashcards</div>
+              </div>
+              <div class="study-card-back">
+                <div class="card-text" id="card-back-text"></div>
+              </div>
+            </div>
+          </div>
+
+          <button class="nav-arrow nav-next" id="next-card">›</button>
+
+          <div class="card-progress" id="card-progress">1 / 0</div>
+        </div>
+      </div>
+
+      <div class="flashcard-modal-footer">
+        <span class="footer-hint">Ask AI</span>
+      </div>
     </div>
-  </template>
+  </div>
 
-  <script>
-    const statusEl = document.getElementById('status');
-    const countEl = document.getElementById('count');
-    const listEl = document.getElementById('list');
-    const template = document.getElementById('item-template');
-    const pdfFrame = document.getElementById('pdf-frame');
+  <!-- Settings Modal -->
+  <div class="modal hidden" id="settings-modal">
+    <div class="modal-backdrop"></div>
+    <div class="settings-modal-content">
+      <button class="close-modal-btn settings-close" id="close-settings-modal">✕</button>
 
-    function setViewer(fileUrl) {
-      const url = `/pdfjs/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
-      pdfFrame.src = url;
-    }
+      <div class="settings-layout">
+        <!-- Settings Sidebar -->
+        <nav class="settings-nav">
+          <button class="settings-nav-item active" data-panel="general">General</button>
+          <button class="settings-nav-item" data-panel="appearance">Appearance</button>
+          <button class="settings-nav-item" data-panel="pdf-viewer">PDF Viewer</button>
+          <button class="settings-nav-item" data-panel="about">About</button>
+        </nav>
 
-    function renderItems(items) {
-      listEl.innerHTML = '';
-      if (!items.length) {
-        listEl.innerHTML = '<div class="empty">No notes yet. Export metadata to see your library.</div>';
-        return;
-      }
-      items.forEach((note, idx) => {
-        const node = template.content.cloneNode(true);
-        const el = node.querySelector('.item');
-        node.querySelector('[data-title]').textContent = note.deckName || note.noteId || 'Untitled';
-        node.querySelector('[data-meta]').textContent = `${note.cardCount || 0} flashcards`;
-        node.querySelector('[data-tags]').textContent = note.tags?.length ? note.tags.join(', ') : 'No tags';
-        el.addEventListener('click', () => {
-          document.querySelectorAll('.item').forEach(i => i.classList.remove('active'));
-          el.classList.add('active');
-          // Use any available PDF hint; fall back to bundled sample.
-          const pdfUrl = note.pdfUrl || note.path || note.sourcePath || '/pdfjs/web/compressed.tracemonkey-pldi-09.pdf';
-          setViewer(pdfUrl);
-        });
-        if (idx === 0) el.classList.add('active');
-        listEl.appendChild(node);
-      });
-    }
+        <!-- Settings Panels -->
+        <div class="settings-panels">
+          <!-- General Panel -->
+          <div class="settings-panel active" id="panel-general">
+            <h2>General</h2>
+            <div class="settings-divider"></div>
 
-    async function loadLibrary() {
-      try {
-        const res = await fetch('/library');
-        if (!res.ok) throw new Error('Request failed');
-        const { items = [], summary = {} } = await res.json();
-        statusEl.textContent = 'Ready';
-        countEl.textContent = `${summary.noteCount || items.length} notes · ${summary.cardCount || 0} cards`;
-        renderItems(items);
-        if (items.length) {
-          const first = items[0];
-          const pdfUrl = first.pdfUrl || first.path || first.sourcePath || '/pdfjs/web/compressed.tracemonkey-pldi-09.pdf';
-          setViewer(pdfUrl);
-        }
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = 'Failed to load library';
-        listEl.innerHTML = '<div class="error">Could not load library.</div>';
-      }
-    }
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Sidebar Toggle Shortcut</div>
+                <div class="setting-desc">Press keys to set a custom keyboard shortcut</div>
+              </div>
+              <div class="shortcut-display">
+                <span class="key">CTRL</span>
+                <span class="key">B</span>
+              </div>
+            </div>
 
-    loadLibrary();
-  </script>
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Animation Speed</div>
+              </div>
+              <select class="setting-select" id="animation-speed">
+                <option value="slow">Slow</option>
+                <option value="normal" selected>Normal</option>
+                <option value="fast">Fast</option>
+              </select>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Default Sidebar State</div>
+              </div>
+              <select class="setting-select" id="sidebar-state">
+                <option value="visible" selected>Visible</option>
+                <option value="hidden">Hidden</option>
+              </select>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Automatically Save Library Data</div>
+                <div class="setting-desc">Save summaries and flashcards automatically when changed</div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="auto-save" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Duplicate Lecture Behavior</div>
+                <div class="setting-desc">Choose what happens when opening a lecture that already has saved data</div>
+              </div>
+              <select class="setting-select" id="duplicate-behavior">
+                <option value="ask" selected>Always Ask</option>
+                <option value="replace">Replace</option>
+                <option value="keep">Keep Existing</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Appearance Panel -->
+          <div class="settings-panel" id="panel-appearance">
+            <h2>Appearance</h2>
+            <div class="settings-divider"></div>
+
+            <div class="setting-group">
+              <div class="setting-label">Preset Themes</div>
+              <div class="setting-desc">Quickly apply beautiful combinations of theme and accent colors</div>
+              <div class="theme-grid">
+                <button class="theme-card active" data-theme="default">
+                  <div class="theme-preview">
+                    <div class="preview-bar" style="background: linear-gradient(135deg, #6366f1, #8b5cf6)"></div>
+                  </div>
+                  <span>Default</span>
+                </button>
+                <button class="theme-card" data-theme="ocean">
+                  <div class="theme-preview">
+                    <div class="preview-bar" style="background: linear-gradient(135deg, #0ea5e9, #06b6d4)"></div>
+                  </div>
+                  <span>Ocean</span>
+                </button>
+                <button class="theme-card" data-theme="forest">
+                  <div class="theme-preview">
+                    <div class="preview-bar" style="background: linear-gradient(135deg, #10b981, #22c55e)"></div>
+                  </div>
+                  <span>Forest</span>
+                </button>
+                <button class="theme-card" data-theme="sunset">
+                  <div class="theme-preview">
+                    <div class="preview-bar" style="background: linear-gradient(135deg, #f59e0b, #ef4444)"></div>
+                  </div>
+                  <span>Sunset</span>
+                </button>
+                <button class="theme-card" data-theme="lavender">
+                  <div class="theme-preview">
+                    <div class="preview-bar" style="background: linear-gradient(135deg, #a78bfa, #c4b5fd)"></div>
+                  </div>
+                  <span>Lavender</span>
+                </button>
+                <button class="theme-card" data-theme="minimal">
+                  <div class="theme-preview">
+                    <div class="preview-bar" style="background: linear-gradient(135deg, #6b7280, #9ca3af)"></div>
+                  </div>
+                  <span>Minimal</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Advanced Custom Colors</div>
+              </div>
+              <select class="setting-select wide" id="custom-colors">
+                <option value="">Advanced Custom Colors</option>
+              </select>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Font Size</div>
+              </div>
+              <select class="setting-select" id="font-size">
+                <option value="small">Small</option>
+                <option value="medium" selected>Medium</option>
+                <option value="large">Large</option>
+              </select>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Theme Mode</div>
+                <div class="setting-desc">Choose whether theme follows system settings or use custom</div>
+              </div>
+              <select class="setting-select" id="theme-mode">
+                <option value="system">System</option>
+                <option value="custom" selected>Custom</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- PDF Viewer Panel -->
+          <div class="settings-panel" id="panel-pdf-viewer">
+            <h2>PDF Viewer</h2>
+            <div class="settings-divider"></div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Default Zoom Level</div>
+              </div>
+              <select class="setting-select" id="default-zoom">
+                <option value="auto" selected>Automatic</option>
+                <option value="page-fit">Page Fit</option>
+                <option value="page-width">Page Width</option>
+                <option value="100">100%</option>
+              </select>
+            </div>
+
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-label">Scroll Mode</div>
+              </div>
+              <select class="setting-select" id="scroll-mode">
+                <option value="vertical" selected>Vertical</option>
+                <option value="horizontal">Horizontal</option>
+                <option value="wrapped">Wrapped</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- About Panel -->
+          <div class="settings-panel" id="panel-about">
+            <h2>About</h2>
+            <div class="settings-divider"></div>
+
+            <div class="about-content">
+              <div class="about-logo">📚</div>
+              <h3>Akson</h3>
+              <p class="version">Version 2.0.0 Web</p>
+              <p class="about-desc">AI-powered study companion for smarter learning.</p>
+              <div class="about-links">
+                <a href="#">Documentation</a>
+                <a href="#">GitHub</a>
+                <a href="#">Support</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Study Session Modal -->
+  <div class="modal hidden" id="study-session-modal">
+    <div class="modal-backdrop"></div>
+    <div class="study-session-content">
+      <div class="study-session-header">
+        <h2>Select Lectures to Study</h2>
+        <div class="study-session-actions">
+          <button class="text-btn" id="open-pdfs-folder">Open PDFs Folder</button>
+          <button class="text-btn" id="exit-study-mode">Exit Study Mode</button>
+          <button class="close-modal-btn" id="close-study-session">✕</button>
+        </div>
+      </div>
+
+      <div class="study-session-body">
+        <div class="study-session-left">
+          <input type="text" class="search-input" id="lecture-search" placeholder="Search lectures to select...">
+
+          <div class="folders-section">
+            <div class="folders-header">
+              <span class="folders-label">FOLDERS</span>
+              <button class="text-btn small" id="new-folder-btn">+ New Folder</button>
+            </div>
+
+            <div class="folder-list" id="folder-list">
+              <div class="folder-item">
+                <input type="checkbox" class="folder-checkbox">
+                <span class="folder-name">new</span>
+              </div>
+              <div class="folder-dropzone">Drag lectures here</div>
+
+              <div class="folder-item">
+                <input type="checkbox" class="folder-checkbox">
+                <span class="folder-name">asdf</span>
+              </div>
+              <div class="folder-dropzone">Drag lectures here</div>
+
+              <div class="folder-item expandable">
+                <input type="checkbox" class="folder-checkbox">
+                <span class="folder-name">pdf24_converted (2)</span>
+              </div>
+              <div class="folder-children">
+                <div class="lecture-item">
+                  <input type="checkbox" class="lecture-checkbox">
+                  <span class="lecture-name">Cohort studies_F</span>
+                </div>
+                <div class="lecture-item">
+                  <input type="checkbox" class="lecture-checkbox">
+                  <span class="lecture-name">EBH9 Ecological and Cross-sectional studies_MM</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="study-session-right">
+          <div class="cards-selection">
+            <div class="selection-label">Number of Cards</div>
+            <label class="radio-option">
+              <input type="radio" name="card-count" value="all" checked>
+              <span>All cards</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="card-count" value="custom">
+              <span>Custom amount:</span>
+              <input type="number" class="custom-count" id="custom-card-count" value="20" min="1">
+            </label>
+          </div>
+
+          <button class="primary-btn large" id="start-study-session">Start Study Session</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay hidden" id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <p id="loading-text">Processing...</p>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/app.js"></script>
 </body>
+
 </html>
