@@ -32,6 +32,42 @@ See https://github.com/adobe-type-tools/cmap-resources
 <script src="../build/pdf.mjs" type="module"></script>
 
     <link rel="stylesheet" href="viewer.css">
+    <style>
+      /* Custom Akson toolbar tweaks */
+      #toolbarViewerMiddle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 200px;
+      }
+      #docTitleContainer {
+        padding: 4px 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--toolbarButton-tint, #fff);
+        max-width: 420px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+      }
+      .zoomCluster {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: 12px;
+      }
+      #zoomSlider {
+        width: 140px;
+        accent-color: #8b5cf6;
+        cursor: pointer;
+      }
+      #scaleSelectContainer select {
+        border-radius: 8px;
+        padding-left: 10px;
+      }
+    </style>
 
   <script src="viewer.mjs" type="module"></script>
   </head>
@@ -279,11 +315,40 @@ See https://github.com/adobe-type-tools/cmap-resources
                   <input type="number" id="pageNumber" class="toolbarField" title="Page" value="1" min="1" tabindex="15" data-l10n-id="pdfjs-page-input" autocomplete="off">
                 </span>
                 <span id="numPages" class="toolbarLabel"></span>
+                <div class="zoomCluster">
+                  <div class="splitToolbarButton">
+                    <button id="zoomOut" class="toolbarButton" title="Zoom Out" tabindex="21" data-l10n-id="pdfjs-zoom-out-button">
+                      <span data-l10n-id="pdfjs-zoom-out-button-label">Zoom Out</span>
+                    </button>
+                    <div class="splitToolbarButtonSeparator"></div>
+                    <button id="zoomIn" class="toolbarButton" title="Zoom In" tabindex="22" data-l10n-id="pdfjs-zoom-in-button">
+                      <span data-l10n-id="pdfjs-zoom-in-button-label">Zoom In</span>
+                     </button>
+                  </div>
+                  <input id="zoomSlider" type="range" min="50" max="400" value="100" step="10" aria-label="Zoom slider">
+                  <span id="scaleSelectContainer" class="dropdownToolbarButton">
+                    <select id="scaleSelect" title="Zoom" tabindex="23" data-l10n-id="pdfjs-zoom-select">
+                      <option id="pageAutoOption" title="" value="auto" selected="selected" data-l10n-id="pdfjs-page-scale-auto">Automatic Zoom</option>
+                      <option id="pageActualOption" title="" value="page-actual" data-l10n-id="pdfjs-page-scale-actual">Actual Size</option>
+                      <option id="pageFitOption" title="" value="page-fit" data-l10n-id="pdfjs-page-scale-fit">Page Fit</option>
+                      <option id="pageWidthOption" title="" value="page-width" data-l10n-id="pdfjs-page-scale-width">Page Width</option>
+                      <option id="customScaleOption" title="" value="custom" disabled="disabled" hidden="true" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 0 }'>0%</option>
+                      <option title="" value="0.5" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 50 }'>50%</option>
+                      <option title="" value="0.75" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 75 }'>75%</option>
+                      <option title="" value="1" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 100 }'>100%</option>
+                      <option title="" value="1.25" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 125 }'>125%</option>
+                      <option title="" value="1.5" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 150 }'>150%</option>
+                      <option title="" value="2" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 200 }'>200%</option>
+                      <option title="" value="3" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 300 }'>300%</option>
+                      <option title="" value="4" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 400 }'>400%</option>
+                    </select>
+                  </span>
+                </div>
               </div>
               <div id="toolbarViewerRight">
                 <div id="editorModeButtons" class="splitToolbarButton toggled" role="radiogroup">
-                  <button id="editorHighlight" class="toolbarButton" disabled="disabled" title="Text (Copy)" role="radio" aria-checked="false" aria-controls="editorFreeTextParamsToolbar" tabindex="31" data-l10n-id="pdfjs-editor-free-text-button">
-                    <span data-l10n-id="pdfjs-editor-free-text-button-label">Text Copy</span>
+                  <button id="editorHighlight" class="toolbarButton" disabled="disabled" title="Highlight" role="radio" aria-checked="false" aria-controls="editorHighlightParamsToolbar" tabindex="31" data-l10n-id="pdfjs-editor-highlight-button">
+                    <span data-l10n-id="pdfjs-editor-highlight-button-label">Highlight</span>
                   </button>
                   <button id="editorFreeText" class="toolbarButton" disabled="disabled" title="Text" role="radio" aria-checked="false" aria-controls="editorFreeTextParamsToolbar" tabindex="32" data-l10n-id="pdfjs-editor-free-text-button">
                     <span data-l10n-id="pdfjs-editor-free-text-button-label">Text</span>
@@ -313,32 +378,9 @@ See https://github.com/adobe-type-tools/cmap-resources
                 </button>
               </div>
               <div id="toolbarViewerMiddle">
-                <div class="splitToolbarButton">
-                  <button id="zoomOut" class="toolbarButton" title="Zoom Out" tabindex="21" data-l10n-id="pdfjs-zoom-out-button">
-                    <span data-l10n-id="pdfjs-zoom-out-button-label">Zoom Out</span>
-                  </button>
-                  <div class="splitToolbarButtonSeparator"></div>
-                  <button id="zoomIn" class="toolbarButton" title="Zoom In" tabindex="22" data-l10n-id="pdfjs-zoom-in-button">
-                    <span data-l10n-id="pdfjs-zoom-in-button-label">Zoom In</span>
-                   </button>
+                <div id="docTitleContainer" title="Document name">
+                  <span id="docTitleLabel">Document</span>
                 </div>
-                <span id="scaleSelectContainer" class="dropdownToolbarButton">
-                  <select id="scaleSelect" title="Zoom" tabindex="23" data-l10n-id="pdfjs-zoom-select">
-                    <option id="pageAutoOption" title="" value="auto" selected="selected" data-l10n-id="pdfjs-page-scale-auto">Automatic Zoom</option>
-                    <option id="pageActualOption" title="" value="page-actual" data-l10n-id="pdfjs-page-scale-actual">Actual Size</option>
-                    <option id="pageFitOption" title="" value="page-fit" data-l10n-id="pdfjs-page-scale-fit">Page Fit</option>
-                    <option id="pageWidthOption" title="" value="page-width" data-l10n-id="pdfjs-page-scale-width">Page Width</option>
-                    <option id="customScaleOption" title="" value="custom" disabled="disabled" hidden="true" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 0 }'>0%</option>
-                    <option title="" value="0.5" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 50 }'>50%</option>
-                    <option title="" value="0.75" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 75 }'>75%</option>
-                    <option title="" value="1" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 100 }'>100%</option>
-                    <option title="" value="1.25" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 125 }'>125%</option>
-                    <option title="" value="1.5" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 150 }'>150%</option>
-                    <option title="" value="2" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 200 }'>200%</option>
-                    <option title="" value="3" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 300 }'>300%</option>
-                    <option title="" value="4" data-l10n-id="pdfjs-page-scale-percent" data-l10n-args='{ "scale": 400 }'>400%</option>
-                  </select>
-                </span>
               </div>
             </div>
             <div id="loadingBar">
@@ -574,6 +616,67 @@ See https://github.com/adobe-type-tools/cmap-resources
       setTimeout(forceButtonWork, 500);
       setTimeout(forceButtonWork, 1000);
       setTimeout(forceButtonWork, 2000);
+    })();
+  </script>
+
+  <script>
+    // Akson: document title + zoom slider sync
+    (function() {
+      const titleEl = document.getElementById('docTitleLabel');
+      const slider = document.getElementById('zoomSlider');
+
+      function formatName() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const file = params.get('file');
+          if (!file) return 'Document';
+          const base = decodeURIComponent(file.split('/').pop() || '').replace(/\.pdf$/i, '').trim();
+          return base || 'Document';
+        } catch (e) {
+          return 'Document';
+        }
+      }
+
+      function syncTitle() {
+        if (titleEl) {
+          titleEl.textContent = formatName();
+          titleEl.setAttribute('title', titleEl.textContent);
+        }
+      }
+
+      function syncSlider(scale) {
+        if (!slider || typeof scale !== 'number' || isNaN(scale)) return;
+        const pct = Math.round(scale * 100);
+        const clamped = Math.min(400, Math.max(50, pct));
+        slider.value = String(clamped);
+      }
+
+      function setScaleFromSlider(val) {
+        const pct = Math.min(400, Math.max(50, parseInt(val || '100', 10)));
+        const app = window.PDFViewerApplication;
+        if (app?.pdfViewer) {
+          app.pdfViewer.currentScaleValue = pct / 100;
+        }
+      }
+
+      function attach() {
+        const app = window.PDFViewerApplication;
+        if (!app || !app.eventBus || !app.pdfViewer) {
+          setTimeout(attach, 200);
+          return;
+        }
+        app.eventBus.on('scalechanging', evt => syncSlider(evt?.scale));
+        syncSlider(app.pdfViewer.currentScale || app.pdfViewer.currentScaleValue || 1);
+      }
+
+      if (slider) {
+        slider.addEventListener('input', e => setScaleFromSlider(e.target.value));
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        syncTitle();
+        attach();
+      });
     })();
   </script>
 
