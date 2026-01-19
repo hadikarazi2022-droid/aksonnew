@@ -1,0 +1,83 @@
+
+  <script>
+    // SIMPLE: Force highlight button to work
+    (function() {
+      console.log('🔧 Starting highlight button fix...');
+      
+      function forceButtonWork() {
+        const highlightBtn = document.getElementById('editorHighlight');
+        
+        if (!highlightBtn) {
+          console.log('Button not found, retrying...');
+          setTimeout(forceButtonWork, 200);
+          return;
+        }
+        
+        console.log('✓ Found highlight button');
+        
+        // FORCE IT ENABLED
+        highlightBtn.disabled = false;
+        highlightBtn.removeAttribute('disabled');
+        highlightBtn.style.opacity = '1';
+        highlightBtn.style.pointerEvents = 'auto';
+        highlightBtn.style.cursor = 'pointer';
+        
+        console.log('✓ Button enabled directly');
+        
+        // Add click handler that mimics the Draw button
+        highlightBtn.addEventListener('click', function(e) {
+          console.log('🎨 HIGHLIGHT BUTTON CLICKED!');
+          
+          const app = window.PDFViewerApplication;
+          if (!app || !app.eventBus) {
+            console.error('PDFViewerApplication not available');
+            alert('PDF.js not ready. Please wait and try again.');
+            return;
+          }
+          
+          // Toggle state
+          const isActive = highlightBtn.classList.contains('toggled');
+          
+          if (isActive) {
+            // Turn OFF
+            highlightBtn.classList.remove('toggled');
+            highlightBtn.setAttribute('aria-checked', 'false');
+            app.eventBus.dispatch('switchannotationeditormode', { mode: 0 }); // NONE
+            console.log('✓ Disabled draw mode');
+          } else {
+            // Turn ON - activate INK/Draw mode
+            highlightBtn.classList.add('toggled');
+            highlightBtn.setAttribute('aria-checked', 'true');
+            app.eventBus.dispatch('switchannotationeditormode', { mode: 15 }); // INK mode
+            console.log('✓ Enabled draw mode (INK)');
+            
+            // Turn off other buttons
+            ['editorFreeText', 'editorInk', 'editorStamp'].forEach(id => {
+              const btn = document.getElementById(id);
+              if (btn) {
+                btn.classList.remove('toggled');
+                btn.setAttribute('aria-checked', 'false');
+              }
+            });
+          }
+        });
+        
+        console.log('✓ Click handler installed');
+        
+        // Keep checking and forcing it enabled
+        setInterval(() => {
+          if (highlightBtn.disabled) {
+            highlightBtn.disabled = false;
+            highlightBtn.removeAttribute('disabled');
+            console.log('Re-enabled button (was disabled)');
+          }
+        }, 1000);
+      }
+      
+      // Start immediately and keep trying
+      forceButtonWork();
+      setTimeout(forceButtonWork, 500);
+      setTimeout(forceButtonWork, 1000);
+      setTimeout(forceButtonWork, 2000);
+    })();
+  </script>

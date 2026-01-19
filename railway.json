@@ -1,0 +1,19 @@
+{
+  "project": {
+    "name": "akson",
+    "link": "https://railway.app/project/"
+  },
+  "environments": {
+    "production": {
+      "variables": [
+        { "name": "OPENAI_API_KEY" },
+        { "name": "DATABASE_URL" },
+        { "name": "STRIPE_SECRET_KEY" },
+        { "name": "STRIPE_PUBLISHABLE_KEY" },
+        { "name": "AKSON_PAYMENTS_URL" },
+        { "name": "AI_WORKER_URL" },
+        { "name": "AI_WORKER_SECRET" }
+      ]
+    }
+  }
+}

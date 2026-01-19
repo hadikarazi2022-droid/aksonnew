@@ -1,0 +1,2464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI PDF Viewer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            /* Design System Variables */
+            --sidebar-w: 320px;
+            
+            /* Dark Mode Colors (Default) */
+            --bg-primary: #1a1a1d;
+            --bg-secondary: #2a2a2d;
+            --bg-tertiary: #3a3a3d;
+            --text-primary: #e8e8e8;
+            --text-secondary: #999;
+            --border-color: #333;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #a78bfa;
+            --accent-purple-dark: #7c3aed;
+            --accent-purple-glow: rgba(139, 92, 246, 0.3);
+            
+            /* Light Mode Colors */
+            --bg-primary-light: #ffffff;
+            --bg-secondary-light: #f5f5f5;
+            --bg-tertiary-light: #e8e8e8;
+            --text-primary-light: #1a1a1d;
+            --text-secondary-light: #666;
+            --border-color-light: #ddd;
+            
+            /* Typography */
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-size-base: 13px;
+            --font-size-sm: 12px;
+            --font-size-lg: 14px;
+            
+            /* Spacing */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 24px;
+            
+            /* Border Radius */
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.4);
+            
+            /* Transitions */
+            --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-base: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Light Mode */
+        html.is-light {
+            --bg-primary: var(--bg-primary-light);
+            --bg-secondary: var(--bg-secondary-light);
+            --bg-tertiary: var(--bg-tertiary-light);
+            --text-primary: var(--text-primary-light);
+            --text-secondary: var(--text-secondary-light);
+            --border-color: var(--border-color-light);
+        }
+        
+        body {
+            font-family: var(--font-family);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            transition: background-color var(--transition-base), color var(--transition-base);
+        }
+        
+        #container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        #pdfViewer {
+            flex: 1;
+            background: #2a2a2d;
+        }
+        
+        #rightSidebar {
+            width: var(--sidebar-w);
+            background: var(--bg-primary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            transition: background-color var(--transition-base), border-color var(--transition-base);
+        }
+        
+        #topBar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--border-color);
+            transition: border-color var(--transition-base);
+        }
+        
+        /* 4. Enhanced Button States */
+        .btn {
+            font-size: var(--font-size-base);
+            padding: 10px var(--spacing-sm);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            text-align: center;
+            transition: all var(--transition-base);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative;
+            user-select: none;
+        }
+        
+        .btn:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--accent-purple);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            transition: all 0.1s ease;
+        }
+        
+        /* 8. Enhanced Disabled Button States */
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+            filter: grayscale(0.3);
+        }
+        
+        .btn:disabled::after {
+            content: attr(data-disabled-reason);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            margin-bottom: 4px;
+        }
+        
+        .btn.primary {
+            background: var(--accent-purple);
+            border-color: var(--accent-purple-dark);
+        }
+        
+        .btn.primary:hover {
+            background: var(--accent-purple-dark);
+            box-shadow: 0 2px 8px var(--accent-purple-glow);
+        }
+        
+        .btn.danger {
+            background: #dc3545;
+            border-color: #c82333;
+        }
+        
+        .btn.danger:hover {
+            background: #c82333;
+        }
+        
+        .btn.secondary {
+            background: #6c757d;
+            border-color: #5a6268;
+        }
+        
+        .btn.secondary:hover {
+            background: #5a6268;
+        }
+        
+        .section {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+            transition: border-color var(--transition-base);
+        }
+        
+        .section h3 {
+            font-size: var(--font-size-lg);
+            margin-bottom: var(--spacing-md);
+            color: var(--accent-purple);
+            font-weight: 600;
+        }
+        
+        .box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            min-height: 60px;
+            font-size: var(--font-size-base);
+            line-height: 1.4;
+            transition: background-color var(--transition-base), border-color var(--transition-base);
+        }
+        
+        /* 1. Enhanced Empty States */
+        .box.empty {
+            color: #666;
+            font-style: italic;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+            min-height: 80px;
+            position: relative;
+        }
+        
+        .box.empty::before {
+            content: attr(data-icon);
+            font-size: 32px;
+            margin-bottom: 12px;
+            opacity: 0.4;
+            display: block;
+            line-height: 1;
+        }
+        
+        .box[contenteditable="true"] {
+            outline: none;
+        }
+        
+        .box[contenteditable="true"]:focus {
+            border-color: #007bff;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        /* 3. Enhanced Input Focus States */
+        .input-group input {
+            flex: 1;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: var(--font-size-base);
+            transition: all var(--transition-slow);
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 0 3px var(--accent-purple-glow), 0 0 0 1px var(--accent-purple);
+            background: var(--bg-tertiary);
+        }
+        
+        /* 9. Styled Placeholder Text */
+        .input-group input::placeholder {
+            color: #666;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+        
+        .input-group input:focus::placeholder {
+            opacity: 0.5;
+        }
+        
+        .fc-item {
+            background: #2a2a2d;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        
+        .fc-item .question {
+            font-weight: 600;
+            color: #007bff;
+            margin-bottom: 4px;
+        }
+        
+        .fc-item .answer {
+            color: #e8e8e8;
+        }
+        
+        /* 7. Enhanced Loading States */
+        .loading {
+            color: #5a9fd4;
+            font-style: italic;
+            position: relative;
+            padding-left: 24px;
+        }
+        
+        .loading::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(90, 159, 212, 0.3);
+            border-top-color: #5a9fd4;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: translateY(-50%) rotate(360deg); }
+        }
+        
+        /* 10. Enhanced Error Display */
+        .error {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            border-left: 3px solid #ff6b6b;
+            padding: 12px;
+            border-radius: 6px;
+            position: relative;
+            padding-left: 36px;
+        }
+        
+        .error::before {
+            content: '⚠️';
+            position: absolute;
+            left: 12px;
+            top: 12px;
+            font-size: 16px;
+        }
+        
+        .success {
+            color: #51cf66;
+            background: rgba(81, 207, 102, 0.1);
+            border-left: 3px solid #51cf66;
+            padding: 12px;
+            border-radius: 6px;
+            position: relative;
+            padding-left: 36px;
+        }
+        
+        .success::before {
+            content: '✓';
+            position: absolute;
+            left: 12px;
+            top: 12px;
+            font-size: 16px;
+            color: #51cf66;
+        }
+        
+        #tools {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(26, 26, 29, 0.9);
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+        }
+        
+        #tools button {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: #2a2a2d;
+            border: 1px solid #444;
+            color: #e8e8e8;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        #tools button.active {
+            background: #007bff;
+            border-color: #0056b3;
+        }
+        
+        #tools button:hover {
+            background: #3a3a3d;
+        }
+        
+        .hidden { display: none !important; }
+        
+        /* Welcome / onboarding overlays */
+        .welcome-overlay {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.12), transparent 35%),
+                        radial-gradient(circle at 80% 30%, rgba(91, 157, 255, 0.12), transparent 35%),
+                        var(--bg-primary);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--transition-slow);
+        }
+        .welcome-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .welcome-card {
+            position: relative;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 32px 28px;
+            max-width: 520px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.03);
+            overflow: hidden;
+        }
+        .welcome-glow {
+            position: absolute;
+            inset: -40%;
+            background: radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.15), transparent 45%),
+                        radial-gradient(circle at 70% 70%, rgba(90, 159, 212, 0.18), transparent 40%);
+            filter: blur(40px);
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        .welcome-logo-wrap {
+            position: relative;
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 12px auto;
+        }
+        .welcome-logo-ring {
+            position: absolute;
+            inset: -12px;
+            border-radius: 50%;
+            background: conic-gradient(from 90deg, rgba(139,92,246,0.35), rgba(90,159,212,0.25), rgba(139,92,246,0.35));
+            filter: blur(8px);
+            animation: spin-slow 8s linear infinite;
+        }
+        .welcome-logo {
+            position: relative;
+            width: 96px;
+            height: 96px;
+            border-radius: 24px;
+            padding: 8px;
+            background: rgba(0,0,0,0.15);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 6px 24px rgba(0,0,0,0.35);
+            animation: float 4s ease-in-out infinite;
+        }
+        .welcome-card h1 {
+            text-align: center;
+            margin: 8px 0 4px 0;
+            font-size: 24px;
+            letter-spacing: 0.3px;
+        }
+        .welcome-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin: 0 0 16px 0;
+        }
+        .welcome-progress {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+        }
+        .welcome-pulse {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-purple);
+            box-shadow: 0 0 0 0 rgba(139,92,246,0.45);
+            animation: pulse 1.5s infinite;
+        }
+        .welcome-status {
+            color: var(--text-primary);
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+        .welcome-actions {
+            margin-top: 18px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .welcome-actions .btn {
+            min-width: 140px;
+        }
+        .welcome-return {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            background: rgba(26,26,29,0.9);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 14px;
+            box-shadow: var(--shadow-lg);
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 12000;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity var(--transition-base), transform var(--transition-base);
+        }
+        .welcome-return.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .welcome-return-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .welcome-return-logo {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            padding: 4px;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+        }
+        .welcome-return-title {
+            font-weight: 700;
+        }
+        .welcome-return-subtitle {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        body.welcome-active #container {
+            filter: blur(1px);
+        }
+        @keyframes float { 
+            0%, 100% { transform: translateY(0); } 
+            50% { transform: translateY(-6px); } 
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(139,92,246,0.45); }
+            70% { box-shadow: 0 0 0 14px rgba(139,92,246,0); }
+            100% { box-shadow: 0 0 0 0 rgba(139,92,246,0); }
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 5. Custom Scrollbar Styling */
+        #rightSidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #rightSidebar::-webkit-scrollbar-track {
+            background: #1a1a1d;
+        }
+        
+        #rightSidebar::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+        
+        #rightSidebar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Firefox scrollbar */
+        #rightSidebar {
+            scrollbar-width: thin;
+            scrollbar-color: #444 #1a1a1d;
+        }
+        
+        /* 6. Custom Text Selection */
+        ::selection {
+            background: rgba(90, 159, 212, 0.3);
+            color: #e8e8e8;
+        }
+        
+        ::-moz-selection {
+            background: rgba(90, 159, 212, 0.3);
+            color: #e8e8e8;
+        }
+        
+        /* 2. Enhanced Toast Notification System */
+        .toast-container {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 2147483647;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        
+        .toast {
+            background: rgba(10, 10, 12, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 12px;
+            padding: 12px 16px;
+            min-width: 240px;
+            max-width: 420px;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+            animation: toastSlideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .toast.success { background: linear-gradient(135deg, rgba(46,204,113,0.92), rgba(38,166,91,0.92)); }
+        .toast.error { background: linear-gradient(135deg, rgba(231,76,60,0.95), rgba(192,57,43,0.95)); }
+        .toast.info { background: linear-gradient(135deg, rgba(52,152,219,0.9), rgba(41,128,185,0.9)); }
+        
+        .toast-icon {
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toast-icon-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toast-icon-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .toast-content {
+            flex: 1;
+        }
+        .toast-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            padding: 4px 6px;
+        }
+        .toast-close:hover { background: rgba(255, 255, 255, 0.06); }
+        .toast-action {
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .toast-action:hover { background: rgba(255,255,255,0.22); }
+        
+        @keyframes toastSlideIn {
+            from { transform: translateX(10px) translateY(6px); opacity: 0; }
+            to { transform: translateX(0) translateY(0); opacity: 1; }
+        }
+        @keyframes toastSlideOut {
+            from { opacity: 1; }
+            to { opacity: 0; transform: translateX(4px) translateY(-4px); }
+        }
+        
+        .toast.success {
+            border-left: 4px solid #51cf66;
+            color: #51cf66;
+        }
+        
+        .toast.error {
+            border-left: 4px solid #ff6b6b;
+            color: #ff6b6b;
+        }
+        
+        .toast.info {
+            border-left: 4px solid #5a9fd4;
+            color: #5a9fd4;
+        }
+        
+        .toast-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        
+        .toast-content {
+            flex: 1;
+            color: #e8e8e8;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .toast-close {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s ease;
+        }
+        
+        .toast-close:hover {
+            color: #e8e8e8;
+        }
+        
+        /* Settings Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity var(--transition-base);
+        }
+        
+        .modal:not(.hidden) {
+            opacity: 1;
+        }
+        
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.95);
+            transition: transform var(--transition-base);
+        }
+        
+        .modal:not(.hidden) .modal-content {
+            transform: scale(1);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: var(--text-primary);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+        
+        .modal-close:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        .modal-body {
+            padding: var(--spacing-lg);
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .settings-tabs {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .settings-tab {
+            background: none;
+            border: none;
+            padding: var(--spacing-sm) var(--spacing-md);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: var(--font-size-base);
+            border-bottom: 2px solid transparent;
+            transition: all var(--transition-fast);
+            margin-bottom: -1px;
+        }
+        
+        .settings-tab:hover {
+            color: var(--text-primary);
+        }
+        
+        .settings-tab.active {
+            color: var(--accent-purple);
+            border-bottom-color: var(--accent-purple);
+        }
+        
+        .settings-panel {
+            display: none;
+        }
+        
+        .settings-panel.active {
+            display: block;
+        }
+        
+        .setting-item {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .setting-item label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            color: var(--text-primary);
+            font-size: var(--font-size-base);
+        }
+        
+        .setting-item select,
+        .setting-item input[type="range"] {
+            width: 100%;
+            padding: var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: var(--font-size-base);
+        }
+        
+        .setting-item input[type="checkbox"] {
+            margin-right: var(--spacing-sm);
+        }
+        
+        .setting-group {
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .setting-group h3 {
+            font-size: var(--font-size-lg);
+            margin-bottom: var(--spacing-md);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .expand-toggle {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 12px;
+            transition: transform var(--transition-fast);
+        }
+        
+        .expand-toggle:hover {
+            color: var(--text-primary);
+        }
+        
+        .theme-presets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+        }
+        
+        .theme-preset-card {
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .theme-preset-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent-purple);
+        }
+        
+        .theme-preset-card.active {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 0 3px var(--accent-purple-glow);
+        }
+        
+        .theme-preset-preview {
+            display: flex;
+            gap: var(--spacing-xs);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .theme-preset-color {
+            flex: 1;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .theme-preset-name {
+            font-size: var(--font-size-sm);
+            color: var(--text-primary);
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .advanced-colors-panel {
+            margin-top: var(--spacing-md);
+            padding: var(--spacing-lg);
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+        
+        .advanced-colors-panel.hidden {
+            display: none;
+        }
+        
+        .color-picker-group {
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .color-picker-group label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            color: var(--text-primary);
+            font-size: var(--font-size-base);
+        }
+        
+        .color-picker-group input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+        
+        .color-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-lg);
+        }
+        
+        /* Responsive design */
+        @media (max-width: 1024px) {
+            #rightSidebar {
+                width: 280px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            #container {
+                flex-direction: column;
+            }
+            
+            #rightSidebar {
+                width: 100%;
+                height: 40vh;
+            }
+            
+            #pdfViewer {
+                height: 60vh;
+            }
+            
+            .modal-content {
+                width: 95%;
+                max-height: 95vh;
+            }
+            
+            .theme-presets-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- WRAPPER_VERSION: 2025-10-22-OPTIMIZED -->
+    
+    <div id="aksonWelcomeOverlay" class="welcome-overlay hidden" aria-hidden="true">
+        <div class="welcome-card">
+            <div class="welcome-glow"></div>
+            <div class="welcome-logo-wrap">
+                <div class="welcome-logo-ring"></div>
+                <img src="icons/akson.png" alt="Akson logo" class="welcome-logo">
+            </div>
+            <h1>Welcome to Akson</h1>
+            <p id="welcomeSubtitle" class="welcome-subtitle">Setting up your study space...</p>
+            <div class="welcome-progress">
+                <div class="welcome-pulse"></div>
+                <div class="welcome-status" id="welcomeStatus">Preparing your tools</div>
+            </div>
+            <div class="welcome-actions">
+                <button id="welcomeContinue" class="btn primary">Enter</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="aksonWelcomeReturn" class="welcome-return hidden" aria-live="polite">
+        <div class="welcome-return-card">
+            <img src="icons/akson.png" alt="Akson logo" class="welcome-return-logo">
+            <div>
+                <div class="welcome-return-title">Welcome back</div>
+                <div class="welcome-return-subtitle" id="welcomeReturnSubtitle">Resuming your workspace</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="container">
+        <div id="pdfViewer"></div>
+        
+        <div id="rightSidebar">
+            <!-- Top buttons -->
+            <div id="topBar">
+                <button class="btn primary" id="btnOpenFile" title="Open PDF File">📁 Open</button>
+                <button class="btn" id="btnHome" title="Back to Main App">🏠 Home</button>
+                <button class="btn" id="btnSlides" title="Start presentation mode">📊 Slides</button>
+                <button class="btn" id="btnCards" title="Open Flashcards">🃏 Cards</button>
+                <button class="btn" id="btnMaster" title="Master summary + flashcards">🎯 Master</button>
+                <button class="btn" id="btnLibrary" title="View Library">📚 Library</button>
+                <button class="btn" id="btnSettings" title="Settings">⚙️ Settings</button>
+                <button class="btn danger" id="btnClearCache" title="Clear All Caches">🗑️ Clear</button>
+                <button class="btn secondary" id="btnSave" title="End Session & Save">💾 Save</button>
+            </div>
+            
+            <div class="section">
+                <h3>Current Page Summary</h3>
+                <div id="rsSummary" class="box empty" contenteditable="true" data-icon="📄">Change page to generate a summary here.</div>
+            </div>
+
+            <div class="section">
+                <h3>Term Explainer</h3>
+                <div id="rsExplain" class="box empty" data-icon="🔍">Select a term in the PDF to see a concise definition.</div>
+            </div>
+
+            <div class="section">
+                <h3>Ask AI</h3>
+                <div class="input-group">
+                    <input type="text" id="questionInput" placeholder="Ask a question...">
+                    <button id="btnAsk" class="btn">Ask</button>
+                </div>
+                <div id="aiAnswer" class="box empty" data-icon="💬">Ask me anything about the document.</div>
+            </div>
+
+            <div class="section">
+                <h3>Auto-Generated Flashcards</h3>
+                <div id="autoFcList"></div>
+                <div id="autoFcEmpty" class="box empty" data-icon="✨">Flashcards will be generated automatically for relevant pages.</div>
+            </div>
+
+            <div class="section">
+                <h3>Page Outputs</h3>
+                <div id="outputsContainer"></div>
+            </div>
+
+            <div class="section">
+                <h3>Manual Flashcards</h3>
+                <div id="fcList"></div>
+                <div id="fcEmpty" class="box empty" data-icon="🃏">No cards yet.</div>
+                <div class="input-group">
+                    <button id="btnAddCard" class="btn">+ Empty Card</button>
+                    <button id="btnExportCards" class="btn">Export (JSON)</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Library</h3>
+                <div id="libraryList"></div>
+                <div id="libraryEmpty" class="box empty" data-icon="📚">No saved lectures yet.</div>
+                <div class="input-group">
+                    <button id="btnViewLecture" class="btn">View</button>
+                    <button id="btnDeleteLecture" class="btn secondary">Delete</button>
+                    <button id="btnOpenLibrary" class="btn secondary">Full Library</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Annotation toolbar -->
+    <div id="tools" role="toolbar" aria-label="Annotation tools">
+        <button id="selectBtn" class="active" title="Select tool (Esc)">Select</button>
+        <button id="drawBtn" title="Draw (D)">Draw</button>
+        <button id="textBtn" title="Text (T)">Text</button>
+        <div style="width: 1px; height: 20px; background: #444; margin: 0 4px;"></div>
+        <button id="saveBtn" title="Save (Flatten) to a new PDF">Save (Flatten)</button>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="modal-close" id="settingsModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-tabs">
+                    <button class="settings-tab active" data-tab="general">General</button>
+                    <button class="settings-tab" data-tab="appearance">Appearance</button>
+                    <button class="settings-tab" data-tab="pdf-viewer">PDF Viewer</button>
+                    <button class="settings-tab" data-tab="about" style="background: #ff6b6b; color: white;">About</button>
+                </div>
+                
+                <div class="settings-content">
+                    <!-- General Tab -->
+                    <div class="settings-panel active" data-panel="general">
+                        <div class="setting-item">
+                            <label>Animation Speed</label>
+                            <select id="animationSpeedInput">
+                                <option value="fast">Fast</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="slow">Slow</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label>Default Sidebar State</label>
+                            <select id="defaultSidebarStateInput">
+                                <option value="visible" selected>Visible</option>
+                                <option value="hidden">Hidden</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="autoSaveEnabledInput" checked>
+                                Auto-save enabled
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Appearance Tab -->
+                    <div class="settings-panel" data-panel="appearance">
+                        <div class="setting-group">
+                            <h3>Preset Themes</h3>
+                            <div id="themePresetsContainer" class="theme-presets-grid"></div>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <h3>
+                                Advanced Custom Colors
+                                <button class="expand-toggle" id="advancedColorsToggle">▼</button>
+                            </h3>
+                            <div id="advancedColorsPanel" class="advanced-colors-panel hidden">
+                                <div class="color-picker-group">
+                                    <label>Theme Color (Light Mode)</label>
+                                    <input type="color" id="themeColorLightInput" value="#ffffff">
+                                </div>
+                                <div class="color-picker-group">
+                                    <label>Theme Color (Dark Mode)</label>
+                                    <input type="color" id="themeColorDarkInput" value="#1a1a1d">
+                                </div>
+                                <div class="color-picker-group">
+                                    <label>Accent Color</label>
+                                    <input type="color" id="accentColorInput" value="#8b5cf6">
+                                </div>
+                                <div class="color-picker-group">
+                                    <label>Text Style</label>
+                                    <select id="textStyleInput">
+                                        <option value="light">Light Text</option>
+                                        <option value="dark">Dark Text</option>
+                                    </select>
+                                </div>
+                                <div class="color-actions">
+                                    <button class="btn primary" id="applyColorsBtn">Apply Now</button>
+                                    <button class="btn secondary" id="savePresetBtn">Save as Preset</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- PDF Viewer Tab -->
+                    <div class="settings-panel" data-panel="pdf-viewer">
+                        <div class="setting-item">
+                            <label>Theme Mode</label>
+                            <select id="themeModeInput">
+                                <option value="light">Light</option>
+                                <option value="dark" selected>Dark</option>
+                                <option value="system">System</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label>PDF Page Theme</label>
+                            <select id="pdfPageThemeInput">
+                                <option value="original" selected>Original Colors</option>
+                                <option value="inverted">Inverted Colors</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label>Font Size</label>
+                            <input type="range" id="fontSizeInput" min="10" max="20" value="13">
+                            <span id="fontSizeValue">13px</span>
+                        </div>
+                        <div class="setting-item">
+                            <label>PDF Zoom</label>
+                            <input type="range" id="pdfZoomInput" min="50" max="200" value="100">
+                            <span id="pdfZoomValue">100%</span>
+                        </div>
+                    </div>
+
+                    <!-- About Tab -->
+                    <div class="settings-panel" data-panel="about">
+                        <div class="setting-item">
+                            <div style="text-align: center; padding: var(--spacing-lg);">
+                                <img src="../../../icons/akson.png" alt="Akson" style="width: 48px; height: 48px; margin-bottom: var(--spacing-md); border-radius: 12px;">
+                                <h3 style="margin: 0 0 var(--spacing-sm) 0; color: var(--text-primary);">Akson</h3>
+                                <p style="margin: 0 0 var(--spacing-md) 0; color: var(--text-secondary); font-size: var(--font-size-sm);">AI-Powered Study Companion</p>
+                                <div style="background: var(--bg-tertiary); padding: var(--spacing-sm); border-radius: var(--radius-sm); margin-bottom: var(--spacing-md);">
+                                    <strong>Version:</strong> <span id="appVersion">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label>Check for Updates</label>
+                            <button id="checkUpdatesBtn" style="width: 100%; padding: var(--spacing-sm); background: var(--accent-purple); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer;">Check Now</button>
+                            <div id="updateStatus" style="margin-top: var(--spacing-sm); font-size: var(--font-size-sm); color: var(--text-secondary);"></div>
+                        </div>
+                        <div class="setting-item">
+                            <label>System Info</label>
+                            <div style="background: var(--bg-tertiary); padding: var(--spacing-sm); border-radius: var(--radius-sm); font-size: var(--font-size-sm);">
+                                <div><strong>Platform:</strong> <span id="systemPlatform">macOS</span></div>
+                                <div><strong>Architecture:</strong> <span id="systemArch">arm64</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentPage = 1;
+        let totalPages = 0;
+        let pdfDocument = null;
+        let latestRequestId = 0;
+        
+        // Theme management variables
+        let theme = 'dark';
+        let themeMode = 'dark'; // 'light', 'dark', or 'system'
+        let pdfPageTheme = 'original'; // 'original' or 'inverted'
+        let accentColor = '#8b5cf6';
+        let themeLight = '#ffffff';
+        let themeDark = '#1a1a1d';
+        let customPresets = [];
+        const WELCOME_VERSION = '1';
+        const WELCOME_KEY = 'aksonWelcomeSeen';
+        
+        // DOM elements
+        const rsSummary = document.getElementById('rsSummary');
+        const rsExplain = document.getElementById('rsExplain');
+        const aiAnswer = document.getElementById('aiAnswer');
+        const questionInput = document.getElementById('questionInput');
+        const autoFcList = document.getElementById('autoFcList');
+        const autoFcEmpty = document.getElementById('autoFcEmpty');
+        const fcList = document.getElementById('fcList');
+        const fcEmpty = document.getElementById('fcEmpty');
+        const outputsContainer = document.getElementById('outputsContainer');
+        const libraryList = document.getElementById('libraryList');
+        const libraryEmpty = document.getElementById('libraryEmpty');
+        const btnOpenDocsFolder = document.createElement('button');
+        btnOpenDocsFolder.id = 'btnOpenDocsFolder';
+        btnOpenDocsFolder.className = 'btn secondary';
+        btnOpenDocsFolder.textContent = 'Open PDFs Folder';
+        // Insert into library actions
+        document.addEventListener('DOMContentLoaded', () => {
+            const libraryActions = document.querySelector('#libraryEmpty')?.nextElementSibling;
+            if (libraryActions && libraryActions.classList.contains('input-group')) {
+                libraryActions.appendChild(btnOpenDocsFolder);
+            }
+        });
+        const settingsModal = document.getElementById('settingsModal');
+        const pdfViewerFrame = document.getElementById('pdfViewer');
+        const welcomeOverlay = document.getElementById('aksonWelcomeOverlay');
+        const welcomeStatus = document.getElementById('welcomeStatus');
+        const welcomeSubtitle = document.getElementById('welcomeSubtitle');
+        const welcomeContinue = document.getElementById('welcomeContinue');
+        const welcomeReturn = document.getElementById('aksonWelcomeReturn');
+        const welcomeReturnSubtitle = document.getElementById('welcomeReturnSubtitle');
+        const checkUpdateBtn = document.createElement('button');
+        checkUpdateBtn.className = 'btn secondary';
+        checkUpdateBtn.id = 'btnCheckUpdate';
+        checkUpdateBtn.textContent = 'Check for updates';
+        document.addEventListener('DOMContentLoaded', () => {
+            const topBar = document.getElementById('topBar');
+            if (topBar) {
+                topBar.appendChild(checkUpdateBtn);
+            }
+        });
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Application initialized');
+            setupEventListeners();
+            checkAPI();
+            initThemeSystem();
+            loadThemeOnStartup();
+            maybeShowWelcome();
+        });
+        
+        function checkAPI() {
+            console.log('Checking API availability...');
+            console.log('window.pywebview:', window.pywebview);
+            console.log('window.pywebview.api:', window.pywebview?.api);
+            if (window.pywebview?.api) {
+                console.log('Available API methods:', Object.keys(window.pywebview.api));
+            }
+        }
+
+        // Listen for viewer rename events
+        window.addEventListener('message', (event) => {
+            if (event?.data?.type === 'akson-library-renamed') {
+                const { oldName, newName } = event.data;
+                if (oldName && newName) {
+                    updateLibraryEntryName(oldName, newName);
+                    showMessage(`Renamed to ${newName}`, 'success');
+                    const libraryModal = document.getElementById('libraryModal');
+                    if (libraryModal && libraryModal.classList.contains('show') && typeof openLibrary === 'function') {
+                        openLibrary();
+                    }
+                }
+            }
+        });
+        
+        function getWelcomeState() {
+            try {
+                return JSON.parse(localStorage.getItem(WELCOME_KEY) || 'null');
+            } catch (e) {
+                console.warn('Could not read welcome state', e);
+                return null;
+            }
+        }
+
+        function markWelcomeSeen() {
+            try {
+                localStorage.setItem(WELCOME_KEY, JSON.stringify({
+                    version: WELCOME_VERSION,
+                    lastSeen: Date.now()
+                }));
+            } catch (e) {
+                console.warn('Could not persist welcome state', e);
+            }
+        }
+
+        function hideWelcomeOverlay() {
+            if (!welcomeOverlay) return;
+            welcomeOverlay.classList.remove('show');
+            setTimeout(() => welcomeOverlay.classList.add('hidden'), 280);
+            document.body.classList.remove('welcome-active');
+        }
+
+        function showReturnWelcome(message = 'Your tools are ready.') {
+            if (!welcomeReturn) return;
+            if (welcomeReturnSubtitle && message) {
+                welcomeReturnSubtitle.textContent = message;
+            }
+            welcomeReturn.classList.remove('hidden');
+            requestAnimationFrame(() => welcomeReturn.classList.add('show'));
+            setTimeout(() => {
+                welcomeReturn.classList.remove('show');
+                setTimeout(() => welcomeReturn.classList.add('hidden'), 240);
+            }, 2200);
+        }
+
+        function showFirstWelcome() {
+            if (!welcomeOverlay) return;
+            document.body.classList.add('welcome-active');
+            welcomeOverlay.classList.remove('hidden');
+            if (welcomeSubtitle) {
+                welcomeSubtitle.textContent = 'Setting up your study space...';
+            }
+            if (welcomeStatus) {
+                welcomeStatus.textContent = 'Loading your tools';
+            }
+            requestAnimationFrame(() => welcomeOverlay.classList.add('show'));
+            
+            const finish = () => {
+                markWelcomeSeen();
+                hideWelcomeOverlay();
+                showReturnWelcome('All set. Have a focused session.');
+            };
+            const autoClose = setTimeout(finish, 2600);
+            
+            if (welcomeContinue) {
+                welcomeContinue.onclick = () => {
+                    clearTimeout(autoClose);
+                    finish();
+                };
+            }
+            if (welcomeOverlay) {
+                welcomeOverlay.onclick = (e) => {
+                    if (e.target === welcomeOverlay) {
+                        clearTimeout(autoClose);
+                        finish();
+                    }
+                };
+            }
+        }
+
+        function maybeShowWelcome() {
+            const state = getWelcomeState();
+            if (!state || state.version !== WELCOME_VERSION) {
+                showFirstWelcome();
+                return;
+            }
+            showReturnWelcome('Welcome back to Akson.');
+        }
+
+        function setupEventListeners() {
+            // Button event listeners
+            document.getElementById('btnOpenFile').onclick = handleOpenFile;
+            document.getElementById('btnHome').onclick = handleHome;
+            document.getElementById('btnSlides').onclick = handleSlides;
+            document.getElementById('btnCards').onclick = handleCards;
+            document.getElementById('btnMaster').onclick = handleMaster;
+            document.getElementById('btnLibrary').onclick = handleLibrary;
+            document.getElementById('btnSettings').onclick = handleOpenSettings;
+            document.getElementById('btnClearCache').onclick = handleClearCache;
+            document.getElementById('btnSave').onclick = handleSave;
+            document.getElementById('btnAsk').onclick = handleAsk;
+            document.getElementById('btnAddCard').onclick = handleAddCard;
+            document.getElementById('btnExportCards').onclick = handleExportCards;
+            document.getElementById('btnViewLecture').onclick = handleViewLecture;
+            document.getElementById('btnDeleteLecture').onclick = handleDeleteLecture;
+            document.getElementById('btnOpenLibrary').onclick = handleOpenLibrary;
+            btnOpenDocsFolder.onclick = handleOpenDocsFolder;
+            checkUpdateBtn.onclick = handleCheckUpdate;
+            
+            // Settings modal
+            document.getElementById('settingsModalClose').onclick = handleCloseSettings;
+            settingsModal.onclick = function(e) {
+                if (e.target === settingsModal) {
+                    handleCloseSettings();
+                }
+            };
+            
+            // Settings tabs
+            document.querySelectorAll('.settings-tab').forEach(tab => {
+                tab.onclick = () => switchSettingsTab(tab.dataset.tab);
+            });
+            
+            // Advanced colors toggle
+            document.getElementById('advancedColorsToggle').onclick = toggleAdvancedColors;
+            
+            // Color inputs
+            document.getElementById('applyColorsBtn').onclick = handleApplyColors;
+            document.getElementById('savePresetBtn').onclick = handleSavePreset;
+            
+            // Settings inputs
+            document.getElementById('themeModeInput').onchange = handleThemeModeChange;
+            document.getElementById('pdfPageThemeInput').onchange = handlePdfPageThemeChange;
+            document.getElementById('fontSizeInput').oninput = handleFontSizeChange;
+            document.getElementById('pdfZoomInput').oninput = handlePdfZoomChange;
+
+            // About tab
+            document.getElementById('checkUpdatesBtn').onclick = handleCheckUpdates;
+            updateAboutInfo();
+            
+            // Annotation tools
+            document.getElementById('selectBtn').onclick = () => setTool('select');
+            document.getElementById('drawBtn').onclick = () => setTool('draw');
+            document.getElementById('textBtn').onclick = () => setTool('text');
+            document.getElementById('saveBtn').onclick = handleSaveAnnotations;
+            
+            // Question input enter key
+            questionInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleAsk();
+                }
+            });
+        }
+        
+        function handleOpenFile() {
+            console.log('Opening file dialog...');
+            try {
+                if (window.pywebview?.api?.open_file) {
+                    window.pywebview.api.open_file().then(result => {
+                        console.log('File dialog result:', result);
+                        if (result && result.success) {
+                            showMessage('File loaded successfully!', 'success');
+                        } else {
+                            showMessage('No file selected', 'error');
+                        }
+                    }).catch(err => {
+                        console.error('File dialog error:', err);
+                        showMessage('Error opening file dialog: ' + err.message, 'error');
+                    });
+                } else {
+                    showMessage('File dialog not available', 'error');
+                }
+            } catch (error) {
+                console.error('Error in handleOpenFile:', error);
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+        
+        function handleHome() {
+            console.log('Home button clicked');
+            if (window.pywebview?.api?.go_home) {
+                window.pywebview.api.go_home();
+            }
+        }
+        
+        function handleSlides() {
+            console.log('Slides button clicked');
+            if (window.pywebview?.api?.start_slides) {
+                window.pywebview.api.start_slides();
+            }
+        }
+        
+        function handleCards() {
+            console.log('Cards button clicked');
+            if (window.pywebview?.api?.open_cards) {
+                window.pywebview.api.open_cards();
+            }
+        }
+        
+        function handleMaster() {
+            console.log('Master button clicked');
+            if (window.pywebview?.api?.master_summary) {
+                window.pywebview.api.master_summary();
+            }
+        }
+        
+        function handleLibrary() {
+            console.log('Library button clicked');
+            if (window.pywebview?.api?.open_library) {
+                window.pywebview.api.open_library();
+            }
+        }
+        
+        function handleClearCache() {
+            console.log('Clear cache button clicked');
+            if (confirm('Are you sure you want to clear all caches?')) {
+                if (window.pywebview?.api?.clear_cache) {
+                    window.pywebview.api.clear_cache();
+                    showMessage('Cache cleared successfully!', 'success');
+                }
+            }
+        }
+        
+        function handleSave() {
+            console.log('Save button clicked');
+            if (window.pywebview?.api?.save_session) {
+                window.pywebview.api.save_session();
+                showMessage('Session saved successfully!', 'success');
+            }
+        }
+        
+        function handleAsk() {
+            const question = questionInput.value.trim();
+            if (!question) {
+                showMessage('Please enter a question', 'error');
+                return;
+            }
+            
+            console.log('Asking question:', question);
+            setBox(aiAnswer, 'Thinking...', 'loading');
+            
+            if (window.pywebview?.api?.ask_question) {
+                window.pywebview.api.ask_question(question).then(result => {
+                    if (result && result.ok) {
+                        setBox(aiAnswer, result.answer);
+                        questionInput.value = '';
+                    } else {
+                        setBox(aiAnswer, result?.error || 'Failed to get answer', 'error');
+                    }
+                }).catch(err => {
+                    console.error('Ask question error:', err);
+                    setBox(aiAnswer, 'Error: ' + err.message, 'error');
+                });
+            } else {
+                setBox(aiAnswer, 'API not available', 'error');
+            }
+        }
+        
+        function handleAddCard() {
+            const question = prompt('Enter question:');
+            if (question) {
+                const answer = prompt('Enter answer:');
+                if (answer) {
+                    addCard(question, answer);
+                }
+            }
+        }
+        
+        function handleExportCards() {
+            if (window.pywebview?.api?.export_cards) {
+                window.pywebview.api.export_cards();
+            }
+        }
+        
+        function handleViewLecture() {
+            if (window.pywebview?.api?.view_lecture) {
+                window.pywebview.api.view_lecture();
+            }
+        }
+        
+        function handleDeleteLecture() {
+            if (confirm('Are you sure you want to delete this lecture?')) {
+                if (window.pywebview?.api?.delete_lecture) {
+                    window.pywebview.api.delete_lecture();
+                }
+            }
+        }
+        
+        function handleOpenLibrary() {
+            if (window.pywebview?.api?.open_library) {
+                window.pywebview.api.open_library();
+            }
+        }
+
+        function handleOpenDocsFolder() {
+            if (window.pywebview?.api?.open_docs_folder) {
+                window.pywebview.api.open_docs_folder().then(res => {
+                    if (!res?.ok) {
+                        showMessage(res?.error || 'Could not open folder', 'error');
+                    }
+                }).catch(err => showMessage(err?.message || 'Could not open folder', 'error'));
+            } else {
+                showMessage('Open folder not available', 'error');
+            }
+        }
+
+        function updateLibraryEntryName(oldName, newName) {
+            const roots = [document, libraryList].filter(Boolean);
+            roots.forEach(root => {
+                const items = root.querySelectorAll('[data-filename], .libraryFileName, *');
+                items.forEach(el => {
+                    const dataName = el.getAttribute && el.getAttribute('data-filename');
+                    const text = el.textContent && el.textContent.trim();
+                    if (dataName === oldName) {
+                        el.setAttribute('data-filename', newName);
+                    }
+                    if (text === oldName) {
+                        el.textContent = newName;
+                    }
+                });
+            });
+        }
+
+        async function handleCheckUpdate() {
+            if (!window.pywebview?.api?.check_for_update) {
+                showMessage('Update check unavailable', 'error', null, null, false, true);
+                return;
+            }
+            showMessage('Checking for updates...', 'info', null, null, false, true);
+            try {
+                const res = await window.pywebview.api.check_for_update();
+                if (!res?.ok) {
+                    showMessage(res?.error || 'Could not check updates', 'error', null, null, false, true);
+                    return;
+                }
+                if (!res.needsUpdate) {
+                    showMessage('You are on the latest version', 'success', null, null, false, true);
+                    return;
+                }
+                showMessage(
+                    `Update available: ${res.latest} · ${res.notes || 'New version ready.'}`,
+                    'info',
+                    'Download',
+                    async (btn, toastEl) => {
+                        if (!btn) return;
+                        btn.disabled = true;
+                        btn.innerHTML = `<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.6);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></span>`;
+                        try {
+                            const dl = await window.pywebview.api.download_update(res.downloadUrl, res.sha256 || null);
+                            if (!dl?.ok) {
+                                btn.disabled = false;
+                                btn.innerHTML = 'Retry';
+                                showMessage(dl?.error || 'Download failed', 'error', null, null, false, true);
+                                return;
+                            }
+                            btn.innerHTML = 'Open in Finder';
+                            btn.disabled = false;
+                            btn.onclick = () => {
+                                window.pywebview?.api?.reveal_in_finder && window.pywebview.api.reveal_in_finder(dl.path);
+                                toastEl?.remove();
+                            };
+                            showMessage('Download complete. Ready to open.', 'success', null, null, false, true);
+                        } catch (err) {
+                            btn.disabled = false;
+                            btn.innerHTML = 'Retry';
+                            showMessage(err?.message || 'Download failed', 'error', null, null, false, true);
+                        }
+                    },
+                    true,
+                    true
+                );
+            } catch (e) {
+                showMessage(e?.message || 'Update check failed', 'error', null, null, false, true);
+            }
+        }
+        
+        function setTool(tool) {
+            // Update active tool button
+            document.querySelectorAll('#tools button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tool + 'Btn').classList.add('active');
+            
+            // Implement tool functionality here
+            console.log('Tool set to:', tool);
+        }
+        
+        function handleSaveAnnotations() {
+            console.log('Saving annotations...');
+            if (window.pywebview?.api?.save_annotations) {
+                window.pywebview.api.save_annotations();
+                showMessage('Annotations saved successfully!', 'success');
+            }
+        }
+        
+        function setBox(element, text, className = '') {
+            if (!element) return;
+            
+            if (!text || !text.trim()) {
+                element.innerHTML = '';
+                element.classList.add('empty');
+                return;
+            }
+            
+            element.innerHTML = text;
+            element.classList.remove('empty');
+            
+            if (className) {
+                element.classList.add(className);
+            }
+        }
+        
+        /* 2. Enhanced Toast Notification System */
+        function showMessage(message, type = 'info', actionLabel = null, actionFn = null, persistent = false, withLogo = false) {
+            let container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            const icon = withLogo
+                ? `<div class="toast-icon-logo"><img src="icons/akson.png" alt="Akson" /></div>`
+                : `<span class="toast-icon">${type === 'success' ? '✓' : type === 'error' ? '⚠' : 'ℹ'}</span>`;
+
+            const actionId = actionLabel ? `toast-action-${Date.now()}` : null;
+            const actionBtn = actionLabel ? `<button class="toast-action" id="${actionId}">${actionLabel}</button>` : '';
+            const closeBtn = `<button class="toast-close" onclick="this.parentElement.remove()">×</button>`;
+
+            toast.innerHTML = `${icon}<span class="toast-content">${message}</span>${actionBtn}${closeBtn}`;
+            container.appendChild(toast);
+
+            if (actionLabel && actionFn) {
+                const btn = document.getElementById(actionId);
+                if (btn) btn.onclick = () => actionFn(btn, toast);
+            }
+
+            if (!persistent) {
+                setTimeout(() => {
+                    toast.style.animation = 'toastSlideOut 0.3s ease';
+                    setTimeout(() => toast.remove(), 280);
+                }, 5200);
+            }
+        }
+
+        // Auto-run a quick toast sequence at startup for verification
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                showMessage('Info toast sample', 'info', null, null, false, true);
+                setTimeout(() => showMessage('Success toast sample', 'success', null, null, false, true), 500);
+                setTimeout(() => showMessage('Error toast sample', 'error', null, null, false, true), 1000);
+                setTimeout(() => {
+                    showMessage(
+                        'Update available: 1.2.3 · Faster load, bug fixes.',
+                        'info',
+                        'Download',
+                        (btn, toastEl) => {
+                            if (!btn) return;
+                            btn.disabled = true;
+                            btn.innerHTML = `<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.6);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></span>`;
+                            setTimeout(() => {
+                                btn.innerHTML = 'Open in Finder';
+                                btn.disabled = false;
+                                btn.onclick = () => toastEl?.remove();
+                                showMessage('Download complete. Ready to open.', 'success', null, null, false, true);
+                            }, 1000);
+                        },
+                        true,
+                        true
+                    );
+                }, 1600);
+            } catch (err) {
+                console.error('Toast autoplay error:', err);
+            }
+        });
+        
+        function addCard(question, answer) {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'fc-item';
+            cardEl.innerHTML = `
+                <div class="question">${question}</div>
+                <div class="answer">${answer}</div>
+            `;
+            
+            fcList.appendChild(cardEl);
+            fcEmpty.style.display = 'none';
+        }
+        
+        // PDF.js integration functions
+        function onPageChange(page) {
+            currentPage = page;
+            console.log('Page changed to:', page);
+            
+            // Generate summary for new page
+            if (window.pywebview?.api?.summarize_page) {
+                setBox(rsSummary, 'Generating summary...', 'loading');
+                window.pywebview.api.summarize_page(page).then(result => {
+                    if (result && result.ok) {
+                        setBox(rsSummary, result.summary);
+                    } else {
+                        setBox(rsSummary, result?.error || 'Failed to generate summary', 'error');
+                    }
+                }).catch(err => {
+                    console.error('Summary error:', err);
+                    setBox(rsSummary, 'Error: ' + err.message, 'error');
+                });
+            }
+        }
+        
+        function onTextSelection(text) {
+            if (text && text.trim().length === 1) {
+                // Single word selected - show definition
+                if (window.pywebview?.api?.define_term) {
+                    setBox(rsExplain, 'Looking up definition...', 'loading');
+                    window.pywebview.api.define_term(text.trim()).then(result => {
+                        if (result && result.ok) {
+                            setBox(rsExplain, result.definition);
+                        } else {
+                            setBox(rsExplain, result?.error || 'Definition not found', 'error');
+                        }
+                    }).catch(err => {
+                        console.error('Definition error:', err);
+                        setBox(rsExplain, 'Error: ' + err.message, 'error');
+                    });
+                }
+            }
+        }
+        
+        // ===== Theme Management System =====
+        
+        function initThemeSystem() {
+            initThemePresets();
+            initAdvancedColorsPanel();
+            setupSystemThemeListener();
+        }
+        
+        function getSystemTheme() {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                return 'dark';
+            }
+            return 'light';
+        }
+        
+        function setupSystemThemeListener() {
+            if (window.matchMedia) {
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                mediaQuery.addEventListener('change', (e) => {
+                    if (themeMode === 'system') {
+                        theme = e.matches ? 'dark' : 'light';
+                        applyTheme(theme);
+                    }
+                });
+            }
+        }
+        
+        function applyTheme(currentTheme) {
+            theme = currentTheme;
+            const html = document.documentElement;
+            const body = document.body;
+            
+            // Remove existing theme classes
+            html.classList.remove('is-dark', 'is-light');
+            body.classList.remove('is-dark', 'is-light');
+            
+            // Apply new theme
+            if (currentTheme === 'dark') {
+                html.classList.add('is-dark');
+                body.classList.add('is-dark');
+            } else {
+                html.classList.add('is-light');
+                body.classList.add('is-light');
+            }
+            
+            // Send theme to PDF viewer iframe
+            sendMessageToPdfViewer({
+                type: 'theme-changed',
+                theme: currentTheme,
+                pdfPageTheme: pdfPageTheme === 'inverted'
+            });
+            
+            // Apply theme colors
+            applyThemeColorsToAllUI();
+        }
+        
+        function applyThemeColor(mode, color) {
+            // Parse color and generate theme variations
+            const rgb = hexToRgb(color);
+            if (!rgb) return;
+            
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            
+            // Generate color variations
+            const variations = generateColorVariations(hsl, mode === 'light');
+            
+            // Apply to CSS variables
+            const root = document.documentElement;
+            if (mode === 'light') {
+                themeLight = color;
+                root.style.setProperty('--bg-primary-light', color);
+                root.style.setProperty('--bg-secondary-light', variations.secondary);
+                root.style.setProperty('--bg-tertiary-light', variations.tertiary);
+            } else {
+                themeDark = color;
+                root.style.setProperty('--bg-primary', color);
+                root.style.setProperty('--bg-secondary', variations.secondary);
+                root.style.setProperty('--bg-tertiary', variations.tertiary);
+            }
+            
+            applyThemeColorsToAllUI();
+        }
+        
+        function applyAccentColor(color) {
+            accentColor = color;
+            const root = document.documentElement;
+            root.style.setProperty('--accent-purple', color);
+            
+            // Generate lighter and darker variations
+            const rgb = hexToRgb(color);
+            if (rgb) {
+                const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+                const light = hslToHex(hsl.h, hsl.s, Math.min(100, hsl.l + 10));
+                const dark = hslToHex(hsl.h, hsl.s, Math.max(0, hsl.l - 10));
+                root.style.setProperty('--accent-purple-light', light);
+                root.style.setProperty('--accent-purple-dark', dark);
+                root.style.setProperty('--accent-purple-glow', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`);
+            }
+            
+            applyThemeColorsToAllUI();
+        }
+        
+        function applyThemeColorsToAllUI() {
+            const root = document.documentElement;
+            const isDark = theme === 'dark';
+            
+            // Calculate colors based on current theme
+            const baseColor = isDark ? themeDark : themeLight;
+            const rgb = hexToRgb(baseColor);
+            if (!rgb) return;
+            
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            const variations = generateColorVariations(hsl, !isDark);
+            
+            // Apply to all UI elements
+            root.style.setProperty('--bg-primary', isDark ? themeDark : themeLight);
+            root.style.setProperty('--bg-secondary', variations.secondary);
+            root.style.setProperty('--bg-tertiary', variations.tertiary);
+            
+            // Send colors to PDF viewer
+            sendMessageToPdfViewer({
+                type: 'theme-colors-changed',
+                mode: theme,
+                colors: {
+                    bodyBg: isDark ? themeDark : themeLight,
+                    toolbarBg: variations.secondary,
+                    sidebarBg: variations.secondary,
+                    mainColor: isDark ? '#e8e8e8' : '#1a1a1d',
+                    buttonHover: variations.tertiary,
+                    fieldBg: variations.secondary,
+                    fieldBorder: variations.border,
+                    treeitemBg: variations.secondary,
+                    treeitemHover: variations.tertiary,
+                    doorhangerBg: variations.secondary,
+                    dialogBg: variations.secondary
+                }
+            });
+        }
+        
+        function generateColorVariations(hsl, isLight) {
+            const { h, s, l } = hsl;
+            
+            if (isLight) {
+                return {
+                    secondary: hslToHex(h, Math.max(0, s - 20), Math.max(0, l - 5)),
+                    tertiary: hslToHex(h, Math.max(0, s - 30), Math.max(0, l - 10)),
+                    border: hslToHex(h, Math.max(0, s - 40), Math.max(0, l - 15))
+                };
+            } else {
+                return {
+                    secondary: hslToHex(h, Math.min(100, s + 10), Math.min(100, l + 5)),
+                    tertiary: hslToHex(h, Math.min(100, s + 15), Math.min(100, l + 10)),
+                    border: hslToHex(h, Math.min(100, s + 20), Math.min(100, l + 15))
+                };
+            }
+        }
+        
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+        
+        function rgbToHsl(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+            
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+            
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                
+                switch (max) {
+                    case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                    case g: h = ((b - r) / d + 2) / 6; break;
+                    case b: h = ((r - g) / d + 4) / 6; break;
+                }
+            }
+            
+            return { h: h * 360, s: s * 100, l: l * 100 };
+        }
+        
+        function hslToHex(h, s, l) {
+            h /= 360;
+            s /= 100;
+            l /= 100;
+            
+            let r, g, b;
+            
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            
+            const toHex = (x) => {
+                const hex = Math.round(x * 255).toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            };
+            
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        }
+        
+        function initThemePresets() {
+            const container = document.getElementById('themePresetsContainer');
+            if (!container) return;
+            
+            const defaultPresets = [
+                { id: 'default-dark', name: 'Default Dark', light: '#ffffff', dark: '#1a1a1d', accent: '#8b5cf6' },
+                { id: 'default-light', name: 'Default Light', light: '#ffffff', dark: '#1a1a1d', accent: '#8b5cf6' },
+                { id: 'blue-dark', name: 'Blue Dark', light: '#f0f4f8', dark: '#1e293b', accent: '#3b82f6' },
+                { id: 'green-dark', name: 'Green Dark', light: '#f0fdf4', dark: '#1e293b', accent: '#10b981' },
+                { id: 'purple-dark', name: 'Purple Dark', light: '#faf5ff', dark: '#1e1b2e', accent: '#a855f7' },
+                { id: 'red-dark', name: 'Red Dark', light: '#fef2f2', dark: '#2a1e1e', accent: '#ef4444' }
+            ];
+            
+            // Load custom presets
+            loadCustomPresets();
+            const allPresets = [...defaultPresets, ...customPresets];
+            
+            container.innerHTML = '';
+            allPresets.forEach(preset => {
+                const card = document.createElement('div');
+                card.className = 'theme-preset-card';
+                card.dataset.presetId = preset.id;
+                
+                const preview = document.createElement('div');
+                preview.className = 'theme-preset-preview';
+                preview.innerHTML = `
+                    <div class="theme-preset-color" style="background: ${preset.light}"></div>
+                    <div class="theme-preset-color" style="background: ${preset.dark}"></div>
+                    <div class="theme-preset-color" style="background: ${preset.accent}"></div>
+                `;
+                
+                const name = document.createElement('div');
+                name.className = 'theme-preset-name';
+                name.textContent = preset.name;
+                
+                card.appendChild(preview);
+                card.appendChild(name);
+                
+                card.onclick = () => applyPreset(preset);
+                
+                container.appendChild(card);
+            });
+        }
+        
+        function initAdvancedColorsPanel() {
+            const toggle = document.getElementById('advancedColorsToggle');
+            const panel = document.getElementById('advancedColorsPanel');
+            
+            if (!toggle || !panel) return;
+            
+            // Set initial values
+            document.getElementById('themeColorLightInput').value = themeLight;
+            document.getElementById('themeColorDarkInput').value = themeDark;
+            document.getElementById('accentColorInput').value = accentColor;
+        }
+        
+        function toggleAdvancedColors() {
+            const panel = document.getElementById('advancedColorsPanel');
+            const toggle = document.getElementById('advancedColorsToggle');
+            if (panel && toggle) {
+                panel.classList.toggle('hidden');
+                toggle.textContent = panel.classList.contains('hidden') ? '▼' : '▲';
+            }
+        }
+        
+        function applyPreset(preset) {
+            themeLight = preset.light;
+            themeDark = preset.dark;
+            accentColor = preset.accent;
+            
+            // Update inputs
+            document.getElementById('themeColorLightInput').value = themeLight;
+            document.getElementById('themeColorDarkInput').value = themeDark;
+            document.getElementById('accentColorInput').value = accentColor;
+            
+            // Apply colors
+            applyThemeColor('light', themeLight);
+            applyThemeColor('dark', themeDark);
+            applyAccentColor(accentColor);
+            
+            // Update active preset
+            document.querySelectorAll('.theme-preset-card').forEach(card => {
+                card.classList.toggle('active', card.dataset.presetId === preset.id);
+            });
+        }
+        
+        function handleApplyColors() {
+            const lightColor = document.getElementById('themeColorLightInput').value;
+            const darkColor = document.getElementById('themeColorDarkInput').value;
+            const accent = document.getElementById('accentColorInput').value;
+            
+            themeLight = lightColor;
+            themeDark = darkColor;
+            accentColor = accent;
+            
+            applyThemeColor('light', lightColor);
+            applyThemeColor('dark', darkColor);
+            applyAccentColor(accent);
+            
+            showMessage('Colors applied successfully!', 'success');
+        }
+        
+        function handleSavePreset() {
+            const name = prompt('Enter preset name:');
+            if (!name) return;
+            
+            const preset = {
+                id: 'custom-' + Date.now(),
+                name: name,
+                light: themeLight,
+                dark: themeDark,
+                accent: accentColor
+            };
+            
+            customPresets.push(preset);
+            saveCustomPresets();
+            initThemePresets();
+            
+            showMessage('Preset saved successfully!', 'success');
+        }
+        
+        function loadCustomPresets() {
+            try {
+                const saved = localStorage.getItem('themeCustomPresets');
+                if (saved) {
+                    customPresets = JSON.parse(saved);
+                }
+            } catch (e) {
+                console.error('Error loading custom presets:', e);
+                customPresets = [];
+            }
+        }
+        
+        function saveCustomPresets() {
+            try {
+                localStorage.setItem('themeCustomPresets', JSON.stringify(customPresets));
+            } catch (e) {
+                console.error('Error saving custom presets:', e);
+            }
+        }
+        
+        function loadThemeOnStartup() {
+            try {
+                const saved = localStorage.getItem('themeSettings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    themeMode = settings.themeMode || 'dark';
+                    theme = settings.theme || (themeMode === 'system' ? getSystemTheme() : themeMode);
+                    pdfPageTheme = settings.pdfPageTheme || 'original';
+                    accentColor = settings.accentColor || '#8b5cf6';
+                    themeLight = settings.themeLight || '#ffffff';
+                    themeDark = settings.themeDark || '#1a1a1d';
+                    
+                    applyTheme(theme);
+                    applyAccentColor(accentColor);
+                    
+                    // Update UI
+                    document.getElementById('themeModeInput').value = themeMode;
+                    document.getElementById('pdfPageThemeInput').value = pdfPageTheme;
+                }
+            } catch (e) {
+                console.error('Error loading theme settings:', e);
+            }
+        }
+        
+        function saveThemeSettings() {
+            try {
+                const settings = {
+                    themeMode,
+                    theme,
+                    pdfPageTheme,
+                    accentColor,
+                    themeLight,
+                    themeDark
+                };
+                localStorage.setItem('themeSettings', JSON.stringify(settings));
+            } catch (e) {
+                console.error('Error saving theme settings:', e);
+            }
+        }
+        
+        // Settings modal handlers
+        function handleOpenSettings() {
+            settingsModal.classList.remove('hidden');
+        }
+        
+        function handleCloseSettings() {
+            settingsModal.classList.add('hidden');
+            saveThemeSettings();
+        }
+        
+        function switchSettingsTab(tabName) {
+            console.log('🔄 Switching to tab:', tabName);
+            document.querySelectorAll('.settings-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+            document.querySelectorAll('.settings-panel').forEach(panel => {
+                panel.classList.toggle('active', panel.dataset.panel === tabName);
+            });
+            console.log('✅ Tab switch completed for:', tabName);
+        }
+        
+        function handleThemeModeChange(e) {
+            themeMode = e.target.value;
+            if (themeMode === 'system') {
+                theme = getSystemTheme();
+            } else {
+                theme = themeMode;
+            }
+            applyTheme(theme);
+            saveThemeSettings();
+        }
+        
+        function handlePdfPageThemeChange(e) {
+            pdfPageTheme = e.target.value;
+            sendMessageToPdfViewer({
+                type: 'pdf-page-theme-changed',
+                enabled: pdfPageTheme === 'inverted',
+                theme: theme
+            });
+            saveThemeSettings();
+        }
+        
+        function sendMessageToPdfViewer(message) {
+            // Try to find PDF viewer iframe
+            const iframe = pdfViewerFrame.querySelector('iframe');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage(message, '*');
+            } else if (pdfViewerFrame && pdfViewerFrame.contentWindow) {
+                // If pdfViewerFrame itself is an iframe
+                pdfViewerFrame.contentWindow.postMessage(message, '*');
+            } else {
+                // Fallback: try to find any iframe in the document
+                const frames = document.querySelectorAll('iframe');
+                frames.forEach(frame => {
+                    if (frame.contentWindow) {
+                        frame.contentWindow.postMessage(message, '*');
+                    }
+                });
+            }
+        }
+        
+        function handleFontSizeChange(e) {
+            const size = e.target.value;
+            document.getElementById('fontSizeValue').textContent = size + 'px';
+            document.documentElement.style.setProperty('--font-size-base', size + 'px');
+        }
+        
+        function handlePdfZoomChange(e) {
+            const zoom = e.target.value;
+            document.getElementById('pdfZoomValue').textContent = zoom + '%';
+            // PDF zoom would be handled by PDF.js viewer
+        }
+
+        // About tab functions
+        function updateAboutInfo() {
+            console.log('🎯 About tab initializing...');
+            // Set version info
+            const versionElement = document.getElementById('appVersion');
+            if (versionElement) {
+                versionElement.textContent = '1.0.4'; // Will be updated by Python backend
+                console.log('✅ Version set to 1.0.4');
+            } else {
+                console.log('❌ Version element not found');
+            }
+
+            // Set system info
+            const platformElement = document.getElementById('systemPlatform');
+            const archElement = document.getElementById('systemArch');
+
+            if (platformElement) {
+                platformElement.textContent = navigator.platform.includes('Mac') ? 'macOS' :
+                                            navigator.platform.includes('Win') ? 'Windows' : 'Linux';
+            }
+
+            if (archElement) {
+                archElement.textContent = navigator.userAgent.includes('arm64') ||
+                                        navigator.userAgent.includes('ARM') ? 'ARM64' : 'x64';
+            }
+        }
+
+        function handleCheckUpdates() {
+            const btn = document.getElementById('checkUpdatesBtn');
+            const status = document.getElementById('updateStatus');
+
+            if (!btn || !status) return;
+
+            // Disable button and show loading
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+            status.textContent = 'Checking for updates...';
+            status.style.color = 'var(--text-secondary)';
+
+            // Call Python backend to check for updates
+            if (window.pywebview && window.pywebview.api && window.pywebview.api.check_for_updates) {
+                window.pywebview.api.check_for_updates().then(result => {
+                    // Re-enable button
+                    btn.disabled = false;
+                    btn.textContent = 'Check Now';
+
+                    if (result && result.ok) {
+                        if (result.needsUpdate) {
+                            status.textContent = `Update available: v${result.latest}`;
+                            status.style.color = 'var(--accent-purple)';
+
+                            // Show download prompt
+                            setTimeout(() => {
+                                if (confirm(`Update available: v${result.latest}\n\n${result.notes}\n\nDownload now?`)) {
+                                    if (window.pywebview && window.pywebview.api && window.pywebview.api.download_update) {
+                                        status.textContent = 'Downloading update...';
+                                        window.pywebview.api.download_update(result.downloadUrl).then(downloadResult => {
+                                            if (downloadResult && downloadResult.ok) {
+                                                status.textContent = 'Update downloaded! Check your Downloads folder.';
+                                                status.style.color = '#28a745';
+                                            } else {
+                                                status.textContent = 'Download failed: ' + (downloadResult.error || 'Unknown error');
+                                                status.style.color = '#dc3545';
+                                            }
+                                        });
+                                    }
+                                }
+                            }, 500);
+                        } else {
+                            status.textContent = 'You have the latest version!';
+                            status.style.color = '#28a745';
+                        }
+                    } else {
+                        status.textContent = 'Failed to check updates: ' + (result.error || 'Network error');
+                        status.style.color = '#dc3545';
+                    }
+                }).catch(error => {
+                    btn.disabled = false;
+                    btn.textContent = 'Check Now';
+                    status.textContent = 'Error checking updates: ' + error.message;
+                    status.style.color = '#dc3545';
+                });
+            } else {
+                // Fallback for when not running in pywebview
+                btn.disabled = false;
+                btn.textContent = 'Check Now';
+                status.textContent = 'Update checking not available in this environment';
+                status.style.color = 'var(--text-secondary)';
+            }
+        }
+
+        // Export functions for PDF.js integration
+        window.onPageChange = onPageChange;
+        window.onTextSelection = onTextSelection;
+        window.showMessage = showMessage;
+        window.addCard = addCard;
+    </script>
+</body>
+</html>

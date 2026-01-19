@@ -1,3 +1,5 @@
+fastapi
+uvicorn
 flask
 flask-sqlalchemy
 flask-cors
@@ -18,3 +20,5 @@ pytesseract
 Pillow
 genanki
 pywebview
+fastapi
+uvicorn
